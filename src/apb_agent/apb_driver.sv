@@ -102,6 +102,7 @@ class apb_driver #(AW=32,DW=32) extends uvm_driver #(apb_trans #(AW,DW));
         vif.mst_cb.psel      <= 1'b0;
 	      vif.mst_cb.penable   <= 1'b0;
       end
+      
       APB_SLAVE: begin
         wait (vif.slv_cb.psel);
         `uvm_info(get_type_name(), $sformatf("The APB SLAVE Driver will start the following transfer:\n%s",trans.sprint()), UVM_HIGH)
