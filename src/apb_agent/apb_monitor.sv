@@ -24,6 +24,22 @@ class apb_monitor #(AW=32,DW=32) extends uvm_monitor;
   bit has_checks  ;  
   bit has_coverage;
 
+  //coverage relevant signals
+  //data bit toggle toggle
+  bit [DW-1:0] prdata_tgl_cov;
+  bit          prdata_dir    ;
+  bit [DW-1:0] pwdata_tgl_cov;
+  bit          pwdata_dir    ;
+
+  //address bit toggle
+  bit [AW-1:0] paddr_tgl_cov ;
+  bit          paddr_dir     ;
+
+  //events
+  event apb_signal_cov_e ;
+  event apb_reset_cov_e  ;
+  event apb_trans_ended_e;
+
 
 //------------------------Covergroups------------------------------
   
@@ -35,8 +51,6 @@ class apb_monitor #(AW=32,DW=32) extends uvm_monitor;
     pready_sig : coverpoint vif.pready;
     pslverr_sig: coverpoint vif.pslverr;
   endgroup
-  
-  //Data toggle [TBD]
 
   //reset coverage
   covergroup apb_reset_cov @apb_reset_cov_e;
@@ -49,6 +63,7 @@ class apb_monitor #(AW=32,DW=32) extends uvm_monitor;
     }
   endgroup
 
+  //functional
   covergroup apb_cov @apb_trans_ended_e;
     //inter transaction delay
     trans_delay_kind: coverpoint trans.delay_kind {
@@ -66,16 +81,35 @@ class apb_monitor #(AW=32,DW=32) extends uvm_monitor;
       bins rest    = {[2:10]};
     }
 
-    //Data toggle [TBD]
-
-    //Address toggle [TBD]
-
     //response type
     trans_resp_kind : coverpoint trans.resp {
       bins ok    = {APB_OKAY} ;
       bins error = {APB_ERROR};
     }
   endgroup
+
+  //data | addr toggle
+  covergroup apb_pwdata_toggle_cov;
+    option.per_instance = 1 ;
+
+    rise_wdata_cov: coverpoint pwdata_tgl_cov iff (pwdata_dir == 1'b1);
+    fall_wdata_cov: coverpoint pwdata_tgl_cov iff (pwdata_dir == 1'b0);
+  endgroup
+
+  covergroup apb_prdata_toggle_cov;
+    option.per_instance = 1 ;
+
+    rise_rdata_cov: coverpoint prdata_tgl_cov iff (prdata_dir == 1'b1);
+    fall_rdata_cov: coverpoint prdata_tgl_cov iff (prdata_dir == 1'b0);
+  endgroup
+
+  covergroup apb_paddr_toggle_cov;
+    option.per_instance = 1 ;
+
+    rise_addr_cov: coverpoint paddr_tgl_cov iff (paddr_dir == 1'b1);
+    fall_addr_cov: coverpoint paddr_tgl_cov iff (paddr_dir == 1'b0);
+  endgroup
+  
 //-----------------------------------------------------------------
 
   //factory
@@ -118,6 +152,7 @@ class apb_monitor #(AW=32,DW=32) extends uvm_monitor;
       apb_signal_toggle();
       monitor_hw_reset();
       collect_transactions();
+      monitor_toggle_bits();
     join
   endtask:run_phase
 
@@ -157,6 +192,63 @@ class apb_monitor #(AW=32,DW=32) extends uvm_monitor;
     end
   endtask
 
+  task monitor_toggle_bits();
+    bit [DW:0]          last_prdata;
+    bit [DW:0]          last_pwdata;
+    bit [AW:0]          last_paddr;
+    bit                 first_read  = 1'b1;
+    bit                 first_write = 1'b1; 
+
+    forever begin
+      @(apb_trans_ended_e);
+
+      if(~(first_write & first_read))
+        for(int i=0; i<AW; i++)
+          if(trans.data[i] ^ last_pwdata[i]) begin
+            pwdata_id_cov = i;
+            pwdata_dir    = trans.data[i];
+            apb_pwdata_toggle_cov.sample();
+          end
+
+      last_paddr  = trans.addr;   
+
+      if(trans.kind == APB_WRITE) begin
+        if (first_write) begin
+          last_pwdata = trans.pwdata;
+          first_write = 0;
+        end
+        else begin
+          for(int i = 0; i < DW; i++) begin
+            if(trans.data[i] ^ last_pwdata[i]) begin
+              pwdata_id_cov = i;
+              pwdata_dir    = trans.data[i];
+              apb_pwdata_toggle_cov.sample();
+            end
+          end
+
+          last_pwdata = trans.data;;
+        end
+      end
+      else begin
+        if(first_read) begin
+          last_prdata = trans.data;
+          first_read = 1'b0;
+        end
+        else begin
+          for(int i = 0; i < 32; i++) begin
+            if(trans.data[i] ^ last_prdata[i]) begin
+              prdata_id_cov = i;
+              prdata_dir = trans.data[i];
+              apb_prdata_toggle_cov.sample();  
+            end
+          end
+
+          last_prdata = trans.data;  
+        end
+      end
+    end
+  endtask
+
   task collect_transactions();
     forever begin
       wait (viv.mon_cb.psel === 1'b1); //wait untill start of the transaction
@@ -191,6 +283,10 @@ class apb_monitor #(AW=32,DW=32) extends uvm_monitor;
       item_collected_port.write(trans); //write to subcribers and scoreboard
     end
   endtask
+
+  function void report_phase(uvm_phase phase);
+    `uvm_info(get_type_name(), $sformatf("APB Monitor has collected %0d transfers",transfer_number), UVM_LOW)
+  endfunction
 
 endclass
 
