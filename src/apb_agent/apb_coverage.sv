@@ -31,7 +31,17 @@ class apb_coverage extends uvm_subscriber#(apb_trans #(AW,DW));
       bins read  = {APB_READ };
     }
 
-    
+    resp_kind_cov: coverpoint trans.resp{
+      bins okay  = {APB_OKAY};
+      bins error = {APB_ERROR};
+    }
+
+    read_write_x_valid_address_cross: cross valid_address_cov,read_write_cov;
+
+    slverr_x_invalid_addr_corss: cross invalid_address_cov,resp_kind_cov{
+      ignore_bins apb_ok = binsof(resp_kind_cov.okay);
+    }
+
 
   endgroup
 

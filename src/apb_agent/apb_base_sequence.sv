@@ -17,6 +17,7 @@ class apb_base_sequence #(AW=32,DW=32) extends uvm_sequence #(apb_trans #(AW,DW)
   task whatchdog();
     bit [12-1:0] counter     = 'd3000;
     bit          trans_ended         ;
+    bit          trans_started       ;
     fork
       begin
         while (counter != 0) begin
@@ -25,14 +26,18 @@ class apb_base_sequence #(AW=32,DW=32) extends uvm_sequence #(apb_trans #(AW,DW)
             counter = 3000;
           end
           else begin
-            counter--;
+            if(trans_started)
+              counter--;
             #1;
           end
         end
       end
       forever begin
+        waitfor_grant();
+        trans_started = 1;
         wait_for_item_done();
-        trans_ended = 1;
+        trans_ended   = 1;
+        trans_started = 0;
       end
     join_any
   endtask
