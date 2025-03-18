@@ -12,7 +12,7 @@ class reg_apb_adapter extends uvm_reg_adapter;
   virtual function uvm_sequence_item reg2bus(const ref uvm_reg_bus_op rw);
     apb_trans trans;
     trans = new;
-    assert trans.randomize();
+    assert (trans.randomize());
     trans.kind = (rw.kind == UVM_READ) ? APB_READ : APB_WRITE;
     trans.addr = rw.addr;
     trans.data = rw.data;

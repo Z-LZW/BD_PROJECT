@@ -1,11 +1,11 @@
 `ifndef APB_COVERAGE_GUARD
 `define APB_COVERAGE_GUARD
 
-class apb_coverage extends uvm_subscriber#(apb_trans #(AW,DW));
+class apb_coverage #(AW=32,DW=32) extends uvm_subscriber#(apb_trans #(AW,DW));
 
   apb_trans trans;
 
-  `uvm_component_utils(reg_bank_coverage)
+  `uvm_component_param_utils(apb_coverage)
 
   covergroup apb_func_cov;
     option.per_instance = 1;
@@ -23,7 +23,7 @@ class apb_coverage extends uvm_subscriber#(apb_trans #(AW,DW));
     }
 
     invalid_address_cov: coverpoint trans.addr{
-      ignore_bins {'h00,'h04,'h08,'h0c,'h10,'h14,'h18,'h1c,'h20};
+      ignore_bins valid = {'h00,'h04,'h08,'h0c,'h10,'h14,'h18,'h1c,'h20};
     }
 
     read_write_cov: coverpoint trans.kind{
@@ -42,8 +42,19 @@ class apb_coverage extends uvm_subscriber#(apb_trans #(AW,DW));
       ignore_bins apb_ok = binsof(resp_kind_cov.okay);
     }
 
+    endgroup
 
-  endgroup
+    function new(string name = "apb_coverage", uvm_component parent = null);
+      super.new(name, parent);
+      // new to covergroups
+      apb_func_cov = new;
+    endfunction : new
+
+  virtual function void write (apb_trans t);
+    //trans = t;
+    //reg_bank_cov.sample();
+  endfunction : write
+  
 
 endclass
 

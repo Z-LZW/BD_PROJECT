@@ -3,12 +3,12 @@
 
 class system_monitor extends uvm_monitor;
 
-  `uvm_component_utils(clock_monitor)
+  `uvm_component_utils(system_monitor)
 
-  uvm_analysis_port #(clock_trans) item_collected_port; //port used to send the arrival of reset to high level components
+  uvm_analysis_port #(system_trans) item_collected_port; //port used to send the arrival of reset to high level components
 
-  virtual interface clock_interface vif;
-  clock_trans trans;
+  virtual interface system_interface vif;
+  system_trans trans;
 
   function new(string name,uvm_component parent = null);
     super.new(name,parent);
@@ -18,7 +18,7 @@ class system_monitor extends uvm_monitor;
   function void build_phase(uvm_phase phase);
     super.build_phase(phase);
 
-    if (!uvm_config_db#(virtual clock_interface)::get(this,"","clk_vif", vif)) begin
+    if (!uvm_config_db#(virtual system_interface)::get(this,"","system_vif", vif)) begin
       `uvm_fatal(get_type_name(), {"Virtual interface must be set for: ",get_full_name(),".vif"})       
     end
   endfunction: build_phase

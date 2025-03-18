@@ -5,9 +5,9 @@ class tx_fifo_data_reg extends uvm_reg;
 
   rand uvm_reg_field value;
 
-  `uvm_object_utils(tx_fifo_data)
+  `uvm_object_utils(tx_fifo_data_reg)
 
-  function new(name = "tx_fifo_data");
+  function new(string name = "tx_fifo_data_reg");
     super.new(name, 32, UVM_NO_COVERAGE);
   endfunction
 
@@ -22,9 +22,9 @@ class rx_fifo_data_reg extends uvm_reg;
 
   rand uvm_reg_field value;
 
-  `uvm_object_utils(rx_fifo_data)
+  `uvm_object_utils(rx_fifo_data_reg)
 
-  function new(name = "rx_fifo_data");
+  function new(string name = "rx_fifo_data_reg");
     super.new(name, 32, UVM_NO_COVERAGE);
   endfunction
 
@@ -40,9 +40,9 @@ class addr_reg extends uvm_reg;
   rand uvm_reg_field target_addr;
   rand uvm_reg_field device_addr;
 
-  `uvm_object_utils(addr)
+  `uvm_object_utils(addr_reg)
 
-  function new(name = "addr");
+  function new(string name = "addr_reg");
     super.new(name, 32, UVM_NO_COVERAGE);
   endfunction
 
@@ -63,9 +63,9 @@ class ctrl_reg extends uvm_reg;
   rand uvm_reg_field enable_dev ;
   rand uvm_reg_field mode       ;
 
-  `uvm_object_utils(ctrl)
+  `uvm_object_utils(ctrl_reg)
 
-  function new(name = "ctrl");
+  function new(string name = "ctrl_reg");
     super.new(name, 32, UVM_NO_COVERAGE);
   endfunction
 
@@ -78,9 +78,9 @@ class ctrl_reg extends uvm_reg;
 
     rx_fifo_lim.configure(this,8,16,"RW",0,32'h0,1,1,0);
     tx_fifo_lim.configure(this,8, 8,"RW",0,32'h0,1,1,0);
-    enable_ack.configure(this,1,2,"RW",0,32'h0,1,1,0); 
-    enable_dev.configure(this,1,1,"RW",0,32'h0,1,1,0); 
-    mode.configure(this,1,0,"RW",0,32'h0,1,1,0);       
+    enable_ack.configure (this,1, 2,"RW",0,32'h0,1,1,0); 
+    enable_dev.configure (this,1, 1,"RW",0,32'h0,1,1,0); 
+    mode.configure       (this,1, 0,"RW",0,32'h0,1,1,0);       
   endfunction
 endclass
 
@@ -89,12 +89,12 @@ class cmd_reg extends uvm_reg;
   rand uvm_reg_field clear_irq;
   rand uvm_reg_field clear_rx ;
   rand uvm_reg_field clear_tx ;
-  rand uvm_reg_field read     ;
-  rand uvm_reg_field write    ;
+  rand uvm_reg_field read_f     ;
+  rand uvm_reg_field write_f    ;
 
-  `uvm_object_utils(cmd)
+  `uvm_object_utils(cmd_reg)
 
-  function new(name = "cmd");
+  function new(string name = "cmd_reg");
     super.new(name, 32, UVM_NO_COVERAGE);
   endfunction
 
@@ -102,14 +102,15 @@ class cmd_reg extends uvm_reg;
     clear_irq = uvm_reg_field::type_id::create("clear_irq");
     clear_rx  = uvm_reg_field::type_id::create("clear_rx" );
     clear_tx  = uvm_reg_field::type_id::create("clear_tx" );
-    read      = uvm_reg_field::type_id::create("read"     );
-    write     = uvm_reg_field::type_id::create("write"    );
+    read_f    = uvm_reg_field::type_id::create("read_f"   );
+    write_f   = uvm_reg_field::type_id::create("write_f"  );
 
     clear_irq.configure(this,1,4,"WO",0,32'h0,1,1,0);
-    clear_rx.configure(this,1,3,"WO",0,32'h0,1,1,0);
-    clear_tx.configure(this,1,2,"WO",0,32'h0,1,1,0); 
-    read.configure(this,1,1,"WO",0,32'h0,1,1,0); 
-    write.configure(this,1,0,"WO",0,32'h0,1,1,0);       
+    clear_rx.configure (this,1,3,"WO",0,32'h0,1,1,0);
+    clear_tx.configure (this,1,2,"WO",0,32'h0,1,1,0); 
+    read_f.configure   (this,1,1,"WO",0,32'h0,1,1,0); 
+    write_f.configure  (this,1,0,"WO",0,32'h0,1,1,0);       
+
   endfunction
 endclass
 
@@ -121,9 +122,9 @@ class status_reg extends uvm_reg;
   rand uvm_reg_field bsy     ;
   rand uvm_reg_field tip     ;
 
-  `uvm_object_utils(status)
+  `uvm_object_utils(status_reg)
 
-  function new(name = "status");
+  function new(string name = "status_reg");
     super.new(name, 32, UVM_NO_COVERAGE);
   endfunction
 
@@ -135,10 +136,10 @@ class status_reg extends uvm_reg;
     tip      = uvm_reg_field::type_id::create("tip"     );
 
     byte_cnt.configure(this,9,8,"RO",0,32'h0,1,1,0);
-    al.configure(this,1,3,"RO",0,32'h0,1,1,0);
-    nack.configure(this,1,2,"RO",0,32'h0,1,1,0); 
-    bsy.configure(this,1,1,"RO",0,32'h0,1,1,0); 
-    tip.configure(this,1,0,"RO",0,32'h0,1,1,0);       
+    al.configure      (this,1,3,"RO",0,32'h0,1,1,0);
+    nack.configure    (this,1,2,"RO",0,32'h0,1,1,0); 
+    bsy.configure     (this,1,1,"RO",0,32'h0,1,1,0); 
+    tip.configure     (this,1,0,"RO",0,32'h0,1,1,0);       
   endfunction
 endclass
 
@@ -151,9 +152,9 @@ class irq_reg extends uvm_reg;
   rand uvm_reg_field rx_done      ;
   rand uvm_reg_field tx_done      ;
 
-  `uvm_object_utils(irq)
+  `uvm_object_utils(irq_reg)
 
-  function new(name = "irq");
+  function new(string name = "irq_reg");
     super.new(name, 32, UVM_NO_COVERAGE);
   endfunction
 
@@ -167,10 +168,10 @@ class irq_reg extends uvm_reg;
 
     rx_fifo_empty.configure(this,1,5,"RO",0,32'h0,1,1,0);
     tx_fifo_full .configure(this,1,4,"RO",0,32'h0,1,1,0);
-    rx_fail.configure(this,1,3,"RO",0,32'h0,1,1,0); 
-    tx_fail.configure(this,1,2,"RO",0,32'h0,1,1,0); 
-    rx_done.configure(this,1,1,"RO",0,32'h0,1,1,0);       
-    tx_done.configure(this,1,0,"RO",0,32'h0,1,1,0);       
+    rx_fail.configure      (this,1,3,"RO",0,32'h0,1,1,0); 
+    tx_fail.configure      (this,1,2,"RO",0,32'h0,1,1,0); 
+    rx_done.configure      (this,1,1,"RO",0,32'h0,1,1,0);       
+    tx_done.configure      (this,1,0,"RO",0,32'h0,1,1,0);       
   endfunction
 endclass
 
@@ -183,26 +184,26 @@ class irq_mask_reg extends uvm_reg;
   rand uvm_reg_field rx_done_mask      ;
   rand uvm_reg_field tx_done_mask      ;
 
-  `uvm_object_utils(irq_mask)
+  `uvm_object_utils(irq_mask_reg)
 
-  function new(name = "irq_mask");
+  function new(string name = "irq_mask_reg");
     super.new(name, 32, UVM_NO_COVERAGE);
   endfunction
 
   virtual function void build();
     rx_fifo_empty_mask = uvm_reg_field::type_id::create("rx_fifo_empty");
-    tx_fifo_full_mask  = uvm_reg_field::type_id::create("tx_fifo_full ");
-    rx_fail_mask       = uvm_reg_field::type_id::create("rx_fail");
-    tx_fail_mask       = uvm_reg_field::type_id::create("tx_fail");
-    rx_done_mask       = uvm_reg_field::type_id::create("rx_done");
-    tx_done_mask       = uvm_reg_field::type_id::create("tx_done");
+    tx_fifo_full_mask  = uvm_reg_field::type_id::create("tx_fifo_full" );
+    rx_fail_mask       = uvm_reg_field::type_id::create("rx_fail"      );
+    tx_fail_mask       = uvm_reg_field::type_id::create("tx_fail"      );
+    rx_done_mask       = uvm_reg_field::type_id::create("rx_done"      );
+    tx_done_mask       = uvm_reg_field::type_id::create("tx_done"      );
 
     rx_fifo_empty_mask.configure(this,1,5,"RW",0,32'h0,1,1,0);
-    tx_fifo_full_mask.configure(this,1,4,"RW",0,32'h0,1,1,0);
-    rx_fail_mask.configure(this,1,3,"RW",0,32'h0,1,1,0); 
-    tx_fail_mask.configure(this,1,2,"RW",0,32'h0,1,1,0); 
-    rx_done_mask.configure(this,1,1,"RW",0,32'h0,1,1,0);       
-    tx_done_mask.configure(this,1,0,"RW",0,32'h0,1,1,0);       
+    tx_fifo_full_mask.configure (this,1,4,"RW",0,32'h0,1,1,0);
+    rx_fail_mask.configure      (this,1,3,"RW",0,32'h0,1,1,0); 
+    tx_fail_mask.configure      (this,1,2,"RW",0,32'h0,1,1,0); 
+    rx_done_mask.configure      (this,1,1,"RW",0,32'h0,1,1,0);       
+    tx_done_mask.configure      (this,1,0,"RW",0,32'h0,1,1,0);       
   endfunction
 endclass
 
@@ -210,9 +211,9 @@ class divider_reg extends uvm_reg;
    
   rand uvm_reg_field clock_div;
   
-  `uvm_object_utils(divider)
+  `uvm_object_utils(divider_reg)
     
-  function new(name = "divider");
+  function new(string name = "divider_reg");
     super.new(name, 32, UVM_NO_COVERAGE);
   endfunction
 
@@ -237,9 +238,9 @@ class reg_blk extends uvm_reg_block;
   rand irq_mask_reg     irq_mask    ;
   rand divider_reg      divider     ;
 
-  uvm_reg_map reg_map;
+  uvm_reg_map apb_regs_map;
 
-  function new(name = "reg_blk");
+  function new(string name = "reg_blk");
     super.new(.name(name), .has_coverage(UVM_NO_COVERAGE));
   endfunction
 
@@ -283,7 +284,7 @@ class reg_blk extends uvm_reg_block;
     divider.configure(this);
     divider.build();
 
-    // add each register to the registers map
+    // add each cmd to the registers map
     apb_regs_map.add_reg(tx_fifo_data,'h00,"WO");
     apb_regs_map.add_reg(rx_fifo_data,'h04,"RO");
     apb_regs_map.add_reg(addr        ,'h08,"RW");

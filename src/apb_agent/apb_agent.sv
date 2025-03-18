@@ -9,7 +9,7 @@ class apb_agent #(AW=32,DW=32) extends uvm_agent;
   apb_sequencer #(AW,DW) sequencer;
   apb_driver    #(AW,DW) driver;
 
-  `uvm_component_utils_begin(apb_agent #(AW,DW))
+  `uvm_component_param_utils_begin(apb_agent #(AW,DW))
     `uvm_field_enum(uvm_active_passive_enum, is_active, UVM_DEFAULT)
     `uvm_field_enum(apb_agent_kind_t, agent_kind, UVM_ALL_ON)
   `uvm_component_utils_end

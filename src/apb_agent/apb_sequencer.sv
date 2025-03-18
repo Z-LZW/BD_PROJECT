@@ -3,7 +3,7 @@
 
 class apb_sequencer #(AW=32,DW=32) extends uvm_sequencer #(apb_trans #(AW,DW));
 
-  `uvm_component_utils(apb_sequencer #(AW,DW))
+  `uvm_component_param_utils(apb_sequencer #(AW,DW))
    
   function new(input string name, uvm_component parent);
     super.new(name, parent);

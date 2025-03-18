@@ -7,7 +7,7 @@ class apb_monitor #(AW=32,DW=32) extends uvm_monitor;
   uvm_analysis_port #(apb_trans#(AW,DW)) item_collected_port;
 
   //virtual interface
-  virtual apb_if #(AW,DW) vif;
+  virtual apb_interface #(AW,DW) vif;
 
   //collected transaction
   apb_trans #(AW,DW) trans;
@@ -19,7 +19,7 @@ class apb_monitor #(AW=32,DW=32) extends uvm_monitor;
   int unsigned temp_inter_delay;
 
   //delay inside transaction saved localy
-  in unsigned temp_intra_delay;
+  int unsigned temp_intra_delay;
 
   bit has_checks  ;  
   bit has_coverage;
@@ -39,6 +39,7 @@ class apb_monitor #(AW=32,DW=32) extends uvm_monitor;
   event apb_signal_cov_e ;
   event apb_reset_cov_e  ;
   event apb_trans_ended_e;
+  event apb_blocked_e    ;
 
 
 //------------------------Covergroups------------------------------
@@ -69,7 +70,7 @@ class apb_monitor #(AW=32,DW=32) extends uvm_monitor;
     trans_delay_kind: coverpoint trans.delay_kind {
       bins b2b    = {ZERO};
       bins short  = {SHORT};
-      bins medium = {MEDIUM};
+      bins med    = {MEDIUM};
       bins long   = {LARGE};
       bins max    = {MAX};
     }
@@ -113,7 +114,7 @@ class apb_monitor #(AW=32,DW=32) extends uvm_monitor;
 //-----------------------------------------------------------------
 
   //factory
-  `uvm_component_utils_begin(apb_monitor #(AW,DW))
+  `uvm_component_param_utils_begin(apb_monitor #(AW,DW))
       `uvm_field_int(has_checks, UVM_ALL_ON)
       `uvm_field_int(has_coverage, UVM_ALL_ON)
    `uvm_component_utils_end
@@ -133,7 +134,7 @@ class apb_monitor #(AW=32,DW=32) extends uvm_monitor;
   function void build_phase(uvm_phase phase);
     super.build_phase(phase);
     //get virtual interface
-    if (!uvm_config_db#(virtual apb_if #(AW,DW))::get(this,"","apb_vif", vif)) begin
+    if (!uvm_config_db#(virtual apb_interface #(AW,DW))::get(this,"","apb_vif", vif)) begin
 	    `uvm_fatal(get_type_name(), {"Virtual interface must be set for: ",get_full_name(),".vif"})       
     end
   endfunction:build_phase
@@ -153,6 +154,7 @@ class apb_monitor #(AW=32,DW=32) extends uvm_monitor;
       monitor_hw_reset();
       collect_transactions();
       monitor_toggle_bits();
+      whatchdog();
     join
   endtask:run_phase
 
@@ -205,7 +207,7 @@ class apb_monitor #(AW=32,DW=32) extends uvm_monitor;
       if(~(first_write & first_read))
         for(int i=0; i<AW; i++)
           if(trans.data[i] ^ last_pwdata[i]) begin
-            pwdata_id_cov = i;
+            pwdata_tgl_cov = i;
             pwdata_dir    = trans.data[i];
             apb_pwdata_toggle_cov.sample();
           end
@@ -214,13 +216,13 @@ class apb_monitor #(AW=32,DW=32) extends uvm_monitor;
 
       if(trans.kind == APB_WRITE) begin
         if (first_write) begin
-          last_pwdata = trans.pwdata;
+          last_pwdata = trans.data;
           first_write = 0;
         end
         else begin
           for(int i = 0; i < DW; i++) begin
             if(trans.data[i] ^ last_pwdata[i]) begin
-              pwdata_id_cov = i;
+              pwdata_tgl_cov = i;
               pwdata_dir    = trans.data[i];
               apb_pwdata_toggle_cov.sample();
             end
@@ -237,7 +239,7 @@ class apb_monitor #(AW=32,DW=32) extends uvm_monitor;
         else begin
           for(int i = 0; i < 32; i++) begin
             if(trans.data[i] ^ last_prdata[i]) begin
-              prdata_id_cov = i;
+              prdata_tgl_cov = i;
               prdata_dir = trans.data[i];
               apb_prdata_toggle_cov.sample();  
             end
@@ -251,7 +253,7 @@ class apb_monitor #(AW=32,DW=32) extends uvm_monitor;
 
   task collect_transactions();
     forever begin
-      wait (viv.mon_cb.psel === 1'b1); //wait untill start of the transaction
+      wait (vif.mon_cb.psel === 1'b1); //wait untill start of the transaction
       trans = new;
 
       trans.addr = vif.mon_cb.paddr;
@@ -264,6 +266,7 @@ class apb_monitor #(AW=32,DW=32) extends uvm_monitor;
         @(posedge vif.pclk);
 	      @(vif.mon_cb);
 	      trans.ready_delay++;
+        if (trans.ready_delay == 50) -> apb_blocked_e;
       end
 
       if (trans.kind == APB_READ) trans.data = vif.mon_cb.prdata;
@@ -280,8 +283,16 @@ class apb_monitor #(AW=32,DW=32) extends uvm_monitor;
 
       transfer_number++; //increment transfer number
 
+      `uvm_info(get_type_name(), $sformatf("The APB MONITOR has collected the following transaction:\n%s",trans.sprint()), UVM_HIGH)
+
       item_collected_port.write(trans); //write to subcribers and scoreboard
+      @(vif.mon_cb);
     end
+  endtask
+
+  task whatchdog();
+    @(apb_blocked_e);
+    `uvm_fatal(get_type_name(),"APB transaction blocked")
   endtask
 
   function void report_phase(uvm_phase phase);

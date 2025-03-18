@@ -46,6 +46,7 @@ class system_driver extends uvm_driver#(system_trans);
   endtask
 
   task drive_clock();
+    `uvm_info(get_type_name(), $sformatf("System will start driving the clock"), UVM_HIGH)
     #50;
     forever begin
       if(do_reset) begin

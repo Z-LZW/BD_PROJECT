@@ -3,9 +3,9 @@
 
 class apb_base_sequence #(AW=32,DW=32) extends uvm_sequence #(apb_trans #(AW,DW));
 
-  `uvm_object_utils(apb_base_seq)
+  `uvm_object_param_utils(apb_base_sequence)
   
-  function new(string name = "apb_base_seq");
+  function new(string name = "apb_base_sequence");
     super.new(name);
   endfunction:new
   
@@ -33,7 +33,7 @@ class apb_base_sequence #(AW=32,DW=32) extends uvm_sequence #(apb_trans #(AW,DW)
         end
       end
       forever begin
-        waitfor_grant();
+        wait_for_grant();
         trans_started = 1;
         wait_for_item_done();
         trans_ended   = 1;
@@ -47,4 +47,6 @@ class apb_base_sequence #(AW=32,DW=32) extends uvm_sequence #(apb_trans #(AW,DW)
     starting_phase.drop_objection(this);
   endtask
   
-endclass:apb_base_seq
+endclass:apb_base_sequence
+
+`endif

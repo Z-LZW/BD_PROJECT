@@ -3,9 +3,16 @@
 
 package system_package;
 
-  `include "system_if.sv"
+  import uvm_pkg::*;
+  `include "uvm_macros.svh"
+
   `include "system_trans.sv"
+  `include "system_driver.sv"
+  `include "system_monitor.sv"
+  `include "system_sequence.sv"
+  `include "system_sequencer.sv"
+  `include "system_agent.sv"
 
 endpackage
 
-`endif 
+`endif

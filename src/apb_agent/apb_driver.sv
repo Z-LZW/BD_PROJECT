@@ -7,12 +7,12 @@ class apb_driver #(AW=32,DW=32) extends uvm_driver #(apb_trans #(AW,DW));
   apb_agent_kind_t agent_kind;
 
   //factory
-  `uvm_component_utils_begin(apb_driver#(AW,DW))
+  `uvm_component_param_utils_begin(apb_driver#(AW,DW))
     `uvm_field_enum(apb_agent_kind_t, agent_kind, UVM_ALL_ON)
   `uvm_component_utils_end
 
   //interface
-  virtual interface apb_if #(AW,DW) vif;
+  virtual interface apb_interface #(AW,DW) vif;
 
   //constructor
   function new(string name, uvm_component parent = null);
@@ -24,20 +24,20 @@ class apb_driver #(AW=32,DW=32) extends uvm_driver #(apb_trans #(AW,DW));
     super.build_phase(phase);
 
     //link the virtual interface
-    if (!uvm_config_db#(virtual apb_if #(AW,DW))::get(this,"","apb_vif", vif)) begin
+    if (!uvm_config_db#(virtual apb_interface #(AW,DW))::get(this,"","apb_vif", vif)) begin
        `uvm_fatal(get_type_name(), {"Virtual interface must be set for: ",get_full_name(),".vif"})
     end
   endfunction:build_phase
 
-  task run_phase(uvm_phase phase)
-    super.run_phase(phase)
+  task run_phase(uvm_phase phase);
+    super.run_phase(phase);
 
     drive_reset_values();
 
     //go over initial reset
     @(posedge vif.preset_n);
 
-    get_and_drive():
+    get_and_drive();
 
   endtask:run_phase
 
@@ -45,8 +45,8 @@ class apb_driver #(AW=32,DW=32) extends uvm_driver #(apb_trans #(AW,DW));
     case (agent_kind)
       APB_MASTER: begin
         vif.mst_cb.psel    <= 1'b0;
-        vif.mst_cb.penable <= 1'bx;
-        vif.mst_cb.pwrite  <= 1'bx;
+        vif.mst_cb.penable <= 1'b0;
+        vif.mst_cb.pwrite  <= 1'b0;
         vif.mst_cb.paddr   <=  'bx;
         vif.mst_cb.pwdata  <=  'bx;
       end
@@ -101,6 +101,7 @@ class apb_driver #(AW=32,DW=32) extends uvm_driver #(apb_trans #(AW,DW));
         wait(vif.mst_cb.pready);
         vif.mst_cb.psel      <= 1'b0;
 	      vif.mst_cb.penable   <= 1'b0;
+        trans.data            = vif.mst_cb.prdata;
       end
 
       APB_SLAVE: begin
@@ -112,11 +113,13 @@ class apb_driver #(AW=32,DW=32) extends uvm_driver #(apb_trans #(AW,DW));
 
         repeat(trans.ready_delay) @(vif.slv_cb); //insert ready delay
         vif.slv_cb.pready  <= 1'b1;
-        vif.slv_cb.pslverr <= (trans.resp == APB_ERROR);
+        vif.slv_cb.pslverr <= (trans.resp == APB_ERROR) ? 1 : 0;
         if (vif.slv_cb.pwrite == 1'b0)  vif.slv_cb.prdata <= trans.data;
         @(vif.slv_cb);
         
         vif.slv_cb.pslverr <= 1'b0;
+        vif.slv_cb.pready  <= 1'b0;
+        @(vif.slv_cb);
       end
     endcase
   endtask

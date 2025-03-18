@@ -1,7 +1,7 @@
 `ifndef APB_INTERFACE_GUARD
 `define APB_INTERFACE_GUARD
 
-interface apb_if #(AW=6,DW=32) (input pclk, input preset_n);
+interface apb_interface #(AW=32,DW=32) (input pclk, input preset_n);
 
   //Master
   wire          psel   ;
@@ -63,7 +63,7 @@ interface apb_if #(AW=6,DW=32) (input pclk, input preset_n);
       (condition) |=> $stable(signal);
   endproperty
 
-  property rise_next_cycle(signal,condition)
+  property rise_next_cycle(signal,condition);
     @(posedge pclk) disable iff (~preset_n)
       $rose(condition) |=> $rose(signal);
   endproperty
@@ -73,12 +73,12 @@ interface apb_if #(AW=6,DW=32) (input pclk, input preset_n);
       (condition) |=> $fell(signal);
   endproperty
 
-  property active_together(signal,condition)
+  property active_together(signal,condition);
     @(posedge pclk) disable iff (~preset_n)
       (~condition) |-> (~signal);
   endproperty
 
-  property rise_delay(signal,condition)
+  property rise_delay(signal,condition);
     @(posedge pclk) disable iff (~preset_n)
       $rose(condition) |-> (~signal)
   endproperty
@@ -90,10 +90,10 @@ interface apb_if #(AW=6,DW=32) (input pclk, input preset_n);
   pready_known:  assert property (not_unknown(pready ,~preset_n)) else $error("PREADY must not be unknown while reset is not asserted" );
 
   //bus signals known
-  paddr_known:   assert property (not_unknown(paddr,(~preset_n   | ~psel)))               else $error("PADDR must not be unknown while PSEL is active"                           );
-  prdata_known:  assert property (not_unknown(prdata,(~preset_n  | ~(pready & ~pwrite)))) else $error("PRDATA must not be unknown while in read transaction and PREADY is active");
-  pwdata_known:  assert property (not_unknown(pwdata,(~preset_n  | ~(psel & pwrite))))    else $error("PWDATA must not be unknown while in write transaction and PSEL is active" );
-  pslverr_knwon: assert property (not_unknown(pslverr,(~preset_n | ~pready)))             else $error("PSLVERR must not be unknown while PREADY is active"                       ); 
+  paddr_known:   assert property (not_unknown(paddr,(~preset_n   | ~psel)))                                else $error("PADDR must not be unknown while PSEL is active"                           );
+  prdata_known:  assert property (not_unknown(prdata,(~preset_n  | ~(pready & ~pwrite & psel & penable)))) else $error("PRDATA must not be unknown while in read transaction and PREADY is active");
+  pwdata_known:  assert property (not_unknown(pwdata,(~preset_n  | ~(psel & pwrite))))                     else $error("PWDATA must not be unknown while in write transaction and PSEL is active" );
+  pslverr_knwon: assert property (not_unknown(pslverr,(~preset_n | ~pready)))                              else $error("PSLVERR must not be unknown while PREADY is active"                       ); 
 
   //bus is stable
   paddr_stable:  assert property (stable(paddr,psel,pready&psel&penable)) else $error("PADDR must be stable while PSEL is active"             );
