@@ -11,9 +11,6 @@ class i2c_driver extends uvm_driver #(i2c_trans);
   `uvm_component_utils_begin(i2c_driver)
     `uvm_field_enum(i2c_agent_kind_t, agent_kind, UVM_ALL_ON)
     `uvm_field_int (dev_addr, UVM_ALL_ON)
-    `uvm_field_int (data    , UVM_ALL_ON)
-    `uvm_field_int (addr    , UVM_ALL_ON)
-    `uvm_field_int (rw      , UVM_ALL_ON)
   `uvm_component_utils_end
 
   //interface
@@ -23,10 +20,10 @@ class i2c_driver extends uvm_driver #(i2c_trans);
   bit [8-1:0] data;
   bit [7-1:0] addr;
   bit         rw  ;
+  bit [9-1:0] size;
 
   //events
-  event stop_condition_e;
-  event nack_e          ;
+  event nack_e;
 
   //constructor
   function new(string name, uvm_component parent = null);
@@ -81,6 +78,7 @@ class i2c_driver extends uvm_driver #(i2c_trans);
   task drive_i2c_trans(i2c_trans trans);
     case(agent_kind)
       I2C_MASTER: begin
+        size = trans.data_q.size();
         vif.cb.sda <= 0; //start condition
         repeat(2)@(vif.cb);
         vif.cb.scl <= 0;
@@ -99,9 +97,9 @@ class i2c_driver extends uvm_driver #(i2c_trans);
               repeat(2)@(vif.cb);
 
               if(trans.kind == I2C_WRITE)
-                repeat(trans.size) master_write_byte();
+                repeat(size) master_write_byte();
               else
-                repeat(trans.size) master_read_byte();
+                repeat(size) master_read_byte();
             end
           end
 
@@ -126,7 +124,7 @@ class i2c_driver extends uvm_driver #(i2c_trans);
         if(addr == dev_addr) begin  //check if the address matches the device address
           vif.cb.sda <= 0; //ack
           
-          @(negedge vif.cb.scl);
+          @(negedge vif.scl);
           repeat(2)@(vif.cb);
 
           if (rw) begin
@@ -157,7 +155,7 @@ class i2c_driver extends uvm_driver #(i2c_trans);
       @(posedge vif.scl);
       addr[i] = vif.cb.sda;
     end
-  endtask
+  endtask: slave_read_address
 
   task slave_read_byte();
     forever begin
@@ -168,7 +166,7 @@ class i2c_driver extends uvm_driver #(i2c_trans);
       if(trans.resp.pop_front() == I2C_ACK)
         vif.sda <= 0; //ack
     end
-  endtask
+  endtask: slave_read_byte
 
   task slave_write_byte();
     forever begin
@@ -186,14 +184,14 @@ class i2c_driver extends uvm_driver #(i2c_trans);
       @(negedge vif.scl);
       repeat(2)@(vif.cb);
     end
-  endtask
+  endtask: slave_write_byte
 
   task master_drive_clock();
     forever begin
       repeat(3)@(vif.cb);
       vif.cb.scl <= ~vif.cb.scl;
     end
-  endtask
+  endtask: master_drive_clock
 
   task master_write_address_rw()
     for(int i = 6; i >= 0; i--) begin
@@ -208,7 +206,7 @@ class i2c_driver extends uvm_driver #(i2c_trans);
       vif.sda <= 1;
     @(negedge vif.scl);
     repeat(2)@(vif.cb);
-  endtask
+  endtask: master_write_address_rw
 
   task master_write_byte();
     data = trans.data_q.pop_front();
@@ -226,11 +224,23 @@ class i2c_driver extends uvm_driver #(i2c_trans);
     end
     else
       ->nack_e;
-  endtask
+  endtask: master_write_byte
 
   task master_read_byte();
+    vif.sda <= 1; //ceding control over the bus
+    repeat(8) @(posedge vif.scl);
+    @(negedge vif.scl);
+    repeat(2) @(vif.cb);
 
-  endtask
+    if (trans.resp.pop_front() == I2C_ACK) begin
+      vif.cb.sda <= 0;
+      @(posedge vif.scl);
+    end
+    else begin
+       @(posedge vif.scl);
+      ->nack_e;
+    end
+  endtask: master_read_byte
 
 endclass
 

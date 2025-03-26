@@ -24,7 +24,7 @@ class i2c_trans extends uvm_sequence_item;
   }
 
   constraint resp_size{
-    resp.size() == data_q.size();
+    resp.size() == data_q.size() + 1;
   }
 
   solve size before resp_size;
