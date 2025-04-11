@@ -6,7 +6,13 @@ class virtual_sequencer extends uvm_sequencer;
   `uvm_component_utils(virtual_sequencer)
 
   apb_sequencer #(32,32) apb_master_seqr;
-  apb_sequencer #(32,32) apb_slave_seqr;
+  apb_sequencer #(32,32) apb_slave_seqr; 
+
+  i2c_sequencer i2c_master_seqr;
+  i2c_sequencer i2c_master_seqr_arb;
+  i2c_sequencer i2c_slave_seqr; 
+
+  reg_blk p_reg_model;
 
   function new(string name, uvm_component parent);
     super.new(name, parent);

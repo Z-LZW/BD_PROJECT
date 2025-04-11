@@ -3,7 +3,7 @@
 
 class base_test extends uvm_test;
 
-  `uvm_component_utils(test_base)
+  `uvm_component_utils(base_test)
 
   environment#(32,32) env;
 

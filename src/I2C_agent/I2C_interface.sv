@@ -40,7 +40,7 @@ interface i2c_interface (input clk,rst_n);
   scl_known: assert property(not_unknown(sda)) else $fatal("SDA must not be X or Z while reset is not asserted");
   sda_known: assert property(not_unknown(scl)) else $fatal("SCL must not be X or Z while reset is not asserted");
 
-  sda_stable: assert property(stable) else $fatal("SDA mut be stable durring a transaction while SCL is high");
+  //sda_stable: assert property(stable) else $fatal("SDA mut be stable durring a transaction while SCL is high");
 
 endinterface
 

@@ -8,6 +8,7 @@ package src_package;
 
   import system_package::*;
   import apb_package::*;
+  import i2c_package::*;
 
   `include "register_model/reg_model.sv"
   `include "register_model/reg_adapter.sv"
