@@ -10,6 +10,10 @@
 ../src/I2C_agent/I2C_interface.sv
 ../src/I2C_agent/I2C_package.sv
 
+#irq
+../src/irq_agent/irq_interface.sv
+../src/irq_agent/irq_package.sv
+
 #src
 ../src/src_package.sv
 

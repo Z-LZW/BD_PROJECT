@@ -1,5 +1,5 @@
 #Name of the SV test class to pe run
-TESTNAME="i2c_selfcheck"
+TESTNAME="cov_selfcheck"
 #Tool used to run simulation; 0 - Mentor, 1 - Cadence
 TOOL=0
 #SEED number used for randomization(for recipe where NUM_SEEDS is not used)
@@ -89,6 +89,8 @@ run_gui:
 .PHONY: run_batch	
 run_batch:
 	if [ ${TOOL} == 0 ]; then \
+	vlib work;\
+        vmap work work;\
 		vlog -sv -f build_files_vlog > compile.log; \
 		vsim -c ${TOP} +UVM_TESTNAME=${TESTNAME} +UVM_VERBOSITY=${VERBOSITY} -sv_seed ${SEED} -do "run -all";\
 	else \
@@ -104,7 +106,7 @@ run_batch:
 run_cov:
 	if [ ${TOOL} == 0 ]; then \
 		vlog -define ${TESTNAME} +cover +fcover -sv -f build_files_vlog > compile.log; \
-		vsim -c -coverage ${TOP} +UVM_TESTNAME=${TESTNAME} -sv_seed ${SEED} -do "coverage save -onexit ./cov_ucdb/${TESTNAME}_${SEED}.ucdb;do exclude.do; run -all; quit -f"; \
+		vsim -c -coverage ${TOP} +UVM_TESTNAME=${TESTNAME} -sv_seed ${SEED} +UVM_VERBOSITY=${VERBOSITY} -do "coverage save -onexit ./cov_ucdb/${TESTNAME}_${SEED}.ucdb;do exclude.do; run -all; quit -f"; \
 		cp transcript ./transcripts/${TESTNAME}_${SEED}_transcript \
 		#vcover report -details -html ${TESTNAME}_${SEED}.ucdb; \
 		#rm ${TESTNAME}_${SEED}.ucdb; \

@@ -42,7 +42,7 @@ endclass
 
 class apb_slave_sequence extends virtual_sequence_base;
 
-  apb_trans #(32,32) trans;
+  apb_trans #(6,32) trans;
 
   `uvm_object_utils(apb_slave_sequence)   
 
@@ -51,15 +51,8 @@ class apb_slave_sequence extends virtual_sequence_base;
   endfunction:new 
 
   virtual task body();
-    `uvm_do_on(trans,p_sequencer.apb_slave_seqr)
-    `uvm_do_on(trans,p_sequencer.apb_slave_seqr)
-    `uvm_do_on(trans,p_sequencer.apb_slave_seqr)
-    `uvm_do_on(trans,p_sequencer.apb_slave_seqr)
-    `uvm_do_on(trans,p_sequencer.apb_slave_seqr)
-    `uvm_do_on(trans,p_sequencer.apb_slave_seqr)
-    `uvm_do_on(trans,p_sequencer.apb_slave_seqr)
-    `uvm_do_on(trans,p_sequencer.apb_slave_seqr)
-    `uvm_do_on(trans,p_sequencer.apb_slave_seqr)
+
+    repeat(9) `uvm_do_on(trans,p_sequencer.apb_slave_seqr)
 
     `uvm_do_on_with(trans,p_sequencer.apb_slave_seqr,{trans.data == 'h00;})
     `uvm_do_on_with(trans,p_sequencer.apb_slave_seqr,{trans.data == 'h00;})
@@ -91,6 +84,7 @@ class apb_sequence extends virtual_sequence_base;
       fork
          `uvm_do(master_seq);
         // master_seq.start(null);
+
          `uvm_do(slave_seq);
       join
       //#500;
@@ -108,6 +102,8 @@ class apb_selfcheck extends base_test;
    
    virtual function void build_phase(uvm_phase phase);
       // Configuration
+      uvm_config_db #(int)::set(this,"env", "number_of_masters",1);
+      uvm_config_db #(int)::set(this,"env", "number_of_slaves",1);
       uvm_config_db #(uvm_object_wrapper)::set(this,"env.v_sequencer.run_phase", "default_sequence", apb_sequence::get_type());
       
       super.build_phase(phase);

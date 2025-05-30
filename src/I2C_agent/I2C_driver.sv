@@ -29,6 +29,7 @@ class i2c_driver extends uvm_driver #(i2c_trans);
   int         clock_period;
   string      trans_kind;
   bit         repeated_start;
+  bit         tip;
 
   //events
   event nack_e;
@@ -70,25 +71,42 @@ class i2c_driver extends uvm_driver #(i2c_trans);
   task get_and_drive();
     forever begin
       fork
-        if(vif.rst_n !== 1) begin
-          disable drive_normal_condition;
-          seq_item_port.item_done(); //abandon current transaction
-          drive_reset_values();
-        end
+        wait(vif.rst_n !== 1);
 
         begin: drive_normal_condition
           seq_item_port.get_next_item(req); //get item from sequencer
           drive_i2c_trans(req);
-          `uvm_info(get_type_name(),$sformatf("ITEM_DONE"),UVM_HIGH)
-          seq_item_port.item_done(); //signal sequencer that item has been transfered
         end: drive_normal_condition
-      join
+
+        check_tip();
+      join_any
+
+      disable fork;
+      `uvm_info(get_type_name(),$sformatf("ITEM_DONE"),UVM_HIGH)
+      seq_item_port.item_done();
+      drive_reset_values();
+      @(vif.cb);
     end
   endtask:get_and_drive
+
+  task check_tip();
+    forever begin
+      @(negedge vif.sda iff vif.scl); //start condition
+      tip = 1;
+      `uvm_info(get_type_name(),$sformatf("TRANSFER IN PROGRESS %d",tip),UVM_HIGH)
+      @(posedge vif.sda iff vif.scl); //stop condition
+      @(vif.cb);
+      tip = 0;
+    end
+  endtask
 
   task drive_i2c_trans(i2c_trans trans);
     case(agent_kind)
       I2C_MASTER: begin
+        while(tip == 1) @(vif.cb); //wait for the bus to be free
+        `uvm_info(get_type_name(),$sformatf("AFTER BUS IS FREE AND TIP IS %d",tip),UVM_HIGH)
+        repeat(trans.delay * trans.clock_period) @(vif.cb); //delay before transaction
+
         size = trans.data_q.size();
         trans_kind = trans.kind == I2C_WRITE ? "WRITE" : "READ";
         `uvm_info(get_type_name(),$sformatf("MASTER WILL DRIVE THE FOLLOWING TRANSACTION:\n%s",trans.sprint()),UVM_HIGH)
@@ -98,7 +116,7 @@ class i2c_driver extends uvm_driver #(i2c_trans);
         vif.cb.scl <= 0;
         
         fork: master_driving
-          master_drive_clock(trans);  //drive scl
+          master_drive_clock(trans); //drive scl
           master_drive_trans(trans); //drive transaction
           check_arb();               //check if arbitration was lost
           @(nack_e);                 //wait for a NACK response
@@ -116,6 +134,7 @@ class i2c_driver extends uvm_driver #(i2c_trans);
             vif.cb.scl <= 1;
 
             repeat(8) @(vif.cb);
+            tip = 0;
           end
           else begin
             vif.cb.sda <= 0;
@@ -142,6 +161,9 @@ class i2c_driver extends uvm_driver #(i2c_trans);
           @(negedge vif.sda iff vif.scl); //start condition
         else
           repeated_start = 0;
+
+        `uvm_info(get_type_name(),$sformatf("SLAVE WILL DRIVE THE FOLLOWING TRANSACTION:\n%s",trans.sprint()),UVM_HIGH)
+        
         fork
           slave_read_address(); //get the 7 address bits
           get_clock_period();

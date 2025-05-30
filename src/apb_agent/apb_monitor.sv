@@ -237,7 +237,7 @@ class apb_monitor #(AW=32,DW=32) extends uvm_monitor;
           first_read = 1'b0;
         end
         else begin
-          for(int i = 0; i < 32; i++) begin
+          for(int i = 0; i < DW; i++) begin
             if(trans.data[i] ^ last_prdata[i]) begin
               prdata_tgl_cov = i;
               prdata_dir = trans.data[i];

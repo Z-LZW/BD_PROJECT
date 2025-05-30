@@ -8,8 +8,9 @@ class apb_agent #(AW=32,DW=32) extends uvm_agent;
   apb_monitor   #(AW,DW) monitor;
   apb_sequencer #(AW,DW) sequencer;
   apb_driver    #(AW,DW) driver;
+  apb_coverage  #(AW,DW) coverage;
 
-  `uvm_component_param_utils_begin(apb_agent #(AW,DW))
+  `uvm_component_param_utils_begin(apb_agent#(AW,DW))
     `uvm_field_enum(uvm_active_passive_enum, is_active, UVM_DEFAULT)
     `uvm_field_enum(apb_agent_kind_t, agent_kind, UVM_ALL_ON)
   `uvm_component_utils_end
@@ -33,6 +34,7 @@ class apb_agent #(AW=32,DW=32) extends uvm_agent;
 
     //create the monitor
     monitor = apb_monitor#(AW,DW)::type_id::create("monitor", this);
+    coverage = apb_coverage#(AW,DW)::type_id::create("coverage",this);
 
     if(is_active == UVM_ACTIVE) begin
 	    //create the sequencer
@@ -49,6 +51,8 @@ class apb_agent #(AW=32,DW=32) extends uvm_agent;
       //connect the driver to the sequencer
 	    driver.seq_item_port.connect(sequencer.seq_item_export);
 	    driver.agent_kind = agent_kind;
+
+      monitor.item_collected_port.connect(coverage.analysis_export);
     end
   endfunction
    

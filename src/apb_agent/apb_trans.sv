@@ -15,7 +15,7 @@ class apb_trans #(AW=32,DW=32) extends uvm_sequence_item;
   rand int unsigned     ready_delay;  //response delay [pready]
 
   //Factory
-  `uvm_object_param_utils_begin(apb_trans)
+  `uvm_object_param_utils_begin(apb_trans#(AW,DW))
     `uvm_field_enum(apb_trans_kind_t, kind, UVM_ALL_ON)
     `uvm_field_int(addr, UVM_ALL_ON)
     `uvm_field_int(data, UVM_ALL_ON)

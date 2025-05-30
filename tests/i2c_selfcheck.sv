@@ -12,8 +12,8 @@ class i2c_master_sequence_arb extends virtual_sequence_base;
   endfunction:new 
 
   virtual task body();
+   #300;
    `uvm_do_on_with(trans,p_sequencer.i2c_master_seqr_arb,{trans.kind == I2C_WRITE; trans.addr == 7'h55; trans.data_q.size() == 1; trans.repeated_start == 0; trans.resp[trans.data_q.size()-1] == I2C_NACK;trans.clock_period == 8;})
-   #200;
     //`uvm_do_on_with(trans,p_sequencer.i2c_master_seqr,{trans.kind == I2C_WRITE; trans.addr == 7'h55; trans.data_q.size() == 1; trans.repeated_start == 0;})
     //`uvm_do_on_with(trans,p_sequencer.i2c_master_seqr,{trans.kind == I2C_WRITE; trans.addr == 7'h55; trans.data_q.size() == 3; trans.repeated_start == 0;})
    //#200;
@@ -36,9 +36,8 @@ class i2c_master_sequence extends virtual_sequence_base;
   endfunction:new 
 
   virtual task body();
-   `uvm_do_on_with(trans,p_sequencer.i2c_master_seqr,{trans.kind == I2C_READ; trans.addr == 7'h55; trans.data_q.size() == 1; trans.repeated_start == 0; trans.resp[trans.data_q.size()-1] == I2C_NACK;trans.clock_period == 16;})
-   #200;
-   //`uvm_do_on_with(trans,p_sequencer.i2c_master_seqr,{trans.kind == I2C_WRITE; trans.addr == 7'h55; trans.data_q.size() == 1; trans.repeated_start == 0;})
+   `uvm_do_on_with(trans,p_sequencer.i2c_master_seqr,{trans.kind == I2C_READ ; trans.addr == 7'h55; trans.data_q.size() == 1; trans.repeated_start == 1; trans.resp[trans.data_q.size()-1] == I2C_NACK;trans.clock_period == 16;})
+   `uvm_do_on_with(trans,p_sequencer.i2c_master_seqr,{trans.kind == I2C_WRITE; trans.addr == 7'h55; trans.data_q.size() == 1; trans.repeated_start == 0; trans.resp[trans.data_q.size()-1] == I2C_NACK;trans.clock_period == 16;})
     //`uvm_do_on_with(trans,p_sequencer.i2c_master_seqr,{trans.kind == I2C_WRITE; trans.addr == 7'h55; trans.data_q.size() == 3; trans.repeated_start == 0;})
    //#200;
    //  `uvm_do_on_with(trans,p_sequencer.i2c_master_seqr,{trans.kind == I2C_WRITE; trans.addr == 7'h5a; trans.data_q.size() == 1; trans.repeated_start == 0;})
@@ -62,9 +61,9 @@ class i2c_slave_sequence extends virtual_sequence_base;
   virtual task body();
    `uvm_do_on_with(trans,p_sequencer.i2c_slave_seqr,{trans.resp.size() > 2;trans.clock_strech == 1;})
     
-   //`uvm_do_on_with(trans,p_sequencer.i2c_slave_seqr,{trans.resp.size() > 4; trans.clock_strech == 1;})
+   `uvm_do_on_with(trans,p_sequencer.i2c_slave_seqr,{trans.resp.size() > 4; trans.clock_strech == 0;})
    
-   // `uvm_do_on(trans,p_sequencer.i2c_slave_seqr)
+   `uvm_do_on_with(trans,p_sequencer.i2c_slave_seqr,{trans.resp.size() > 4; trans.clock_strech == 1;})
 // 
    // `uvm_do_on_with(trans,p_sequencer.i2c_slave_seqr,{trans.data_q.size() > 1;})
 // 
@@ -110,6 +109,8 @@ class i2c_selfcheck extends base_test;
    
    virtual function void build_phase(uvm_phase phase);
       // Configuration
+      uvm_config_db #(int)::set(this,"env", "number_of_masters",1);
+      uvm_config_db #(int)::set(this,"env", "number_of_slaves",1);
       uvm_config_db #(uvm_object_wrapper)::set(this,"env.v_sequencer.run_phase", "default_sequence", i2c_sequence::get_type());
       
       super.build_phase(phase);

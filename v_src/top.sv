@@ -5,6 +5,9 @@
 
 module top;
 
+  localparam AW =  6;
+  localparam DW = 32;
+
   import uvm_pkg::*;
   `include "uvm_macros.svh"
   import src_package::*;
@@ -14,11 +17,13 @@ module top;
   `include "../tests/test_lib.sv"
 
   system_interface system_if(clk,rst_n);
-  apb_interface apb_master_if(clk,rst_n);
-  apb_interface apb_slave_if(clk,rst_n);
+  apb_interface#(AW,DW) apb_master_if(clk,rst_n);
+  apb_interface#(AW,DW) apb_slave_if(clk,rst_n);
   i2c_interface i2c_master_if(clk,rst_n);
   i2c_interface i2c_master_if_arb(clk,rst_n);
   i2c_interface i2c_slave_if(clk,rst_n);
+
+  irq_interface irq_if(clk,rst_n);
 
   //apb master
   wire [31:0] paddr;
@@ -68,12 +73,14 @@ module top;
   initial begin
     uvm_config_db #(virtual interface system_interface)::set(null,"*.sys_agent.*","system_vif",system_if);
 
-    uvm_config_db #(virtual interface apb_interface#(32,32))::set(null,"*.apb_master_agent.*","apb_vif",apb_master_if);
-    uvm_config_db #(virtual interface apb_interface#(32,32))::set(null,"*.apb_slave_agent.*","apb_vif",apb_slave_if);
+    uvm_config_db #(virtual interface apb_interface#(AW,DW))::set(null,"*.apb_master_agent.*","apb_vif",apb_master_if);
+    uvm_config_db #(virtual interface apb_interface#(AW,DW))::set(null,"*.apb_slave_agent.*","apb_vif",apb_slave_if);
 
-    uvm_config_db #(virtual interface i2c_interface)::set(null,"*.i2c_master_agent.*","i2c_vif",i2c_master_if);
-    uvm_config_db #(virtual interface i2c_interface)::set(null,"*.i2c_master_agent_arb.*","i2c_vif",i2c_master_if_arb);
-    uvm_config_db #(virtual interface i2c_interface)::set(null,"*.i2c_slave_agent.*", "i2c_vif",i2c_slave_if);
+    uvm_config_db #(virtual interface i2c_interface)::set(null,"*.i2c_master_agent*","i2c_vif",i2c_master_if);
+    //uvm_config_db #(virtual interface i2c_interface)::set(null,"*.i2c_master_agent_arb.*","i2c_vif",i2c_master_if_arb);
+    uvm_config_db #(virtual interface i2c_interface)::set(null,"*.i2c_slave_agent*", "i2c_vif",i2c_slave_if);
+
+    uvm_config_db #(virtual interface irq_interface)::set(null,"*.irq_slave_agent.*","irq_vif",irq_if);
     run_test();
   end
 

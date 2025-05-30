@@ -3,9 +3,9 @@
 
 class apb_coverage #(AW=32,DW=32) extends uvm_subscriber#(apb_trans #(AW,DW));
 
-  apb_trans trans;
+  apb_trans#(AW,DW) trans;
 
-  `uvm_component_param_utils(apb_coverage)
+  `uvm_component_param_utils(apb_coverage#(AW,DW))
 
   covergroup apb_func_cov;
     option.per_instance = 1;
@@ -50,9 +50,9 @@ class apb_coverage #(AW=32,DW=32) extends uvm_subscriber#(apb_trans #(AW,DW));
       apb_func_cov = new;
     endfunction : new
 
-  virtual function void write (apb_trans t);
-    //trans = t;
-    //reg_bank_cov.sample();
+  virtual function void write (apb_trans#(AW,DW) t);
+    trans = t;
+    apb_func_cov.sample();
   endfunction : write
   
 

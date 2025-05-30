@@ -27,13 +27,17 @@ class i2c_monitor extends uvm_monitor;
 
   bit         tip ; //transfer in progress
 
-  bit         repeated_start;
+  bit         repeated_start   ;
+  bit         start_stop_window;
 
   int         clock_period;
   int         actual_period;
 
   //events
   event nack_e;
+  uvm_event i2c_start_condition;
+  uvm_event i2c_stop_condition;
+  uvm_event i2c_address_accepted;
 
   //factory
   `uvm_component_utils_begin(i2c_monitor)
@@ -61,10 +65,13 @@ class i2c_monitor extends uvm_monitor;
     if (has_coverage) begin
       i2c_reset_cov = new;
     end
+    i2c_start_condition = uvm_event_pool::get_global("i2c_start_condition");
+    i2c_stop_condition  = uvm_event_pool::get_global("i2c_stop_condition");
+    i2c_address_accepted = uvm_event_pool::get_global("i2c_address_accepted");
    endfunction:new
 
-   //build phase
-   function void build_phase(uvm_phase phase);
+  //build phase
+  function void build_phase(uvm_phase phase);
     super.build_phase(phase);
 
     //link virtual interface
@@ -82,7 +89,7 @@ class i2c_monitor extends uvm_monitor;
 
     fork
       collect_transactions();
-      check_clock_streching();
+      run_checks();
     join
   endtask: run_phase
 
@@ -94,30 +101,33 @@ class i2c_monitor extends uvm_monitor;
       join_any  
       disable fork;
       transfer_number++;
-      tip = 0;
-      `uvm_info(get_type_name(), $sformatf("The I2C MONITOR has collected the following transaction:\n%s",trans.sprint()), UVM_MEDIUM)
+
+      `uvm_info(get_type_name(), $sformatf("The I2C MONITOR has collected the following transaction:\n%s",trans.sprint()), UVM_HIGH)
       item_collected_port.write(trans);
     end
   endtask
 
   task monitor_normal_trans();
+    
     trans = new;
 
-    if (~repeated_start)
+    if (~repeated_start) begin
       @(negedge vif.sda iff vif.scl); //start condition
+      i2c_start_condition.trigger();
+    end
     else
       repeated_start = 0;
     
-    tip = 1;
     collect_address_rw();
 
     if(~vif.mon_cb.sda) begin
+      i2c_address_accepted.trigger();
       fork :collect_bytes_fork
         collect_bytes();
-        @(posedge vif.sda iff vif.scl); //stop condition
+        begin @(posedge vif.sda iff vif.scl); i2c_stop_condition.trigger(); end //stop condition
         begin @(negedge vif.sda iff vif.scl); repeated_start = 1; end //repeated start condition
       join_any
-      disable collect_bytes_fork;
+      disable fork;
       trans.repeated_start = repeated_start;
     end
   endtask
@@ -136,7 +146,7 @@ class i2c_monitor extends uvm_monitor;
       trans.kind = I2C_READ;
     else
       trans.kind = I2C_WRITE;
-    `uvm_info(get_type_name(), $sformatf("I2C MONITOR COLLECTED ADDRESS AND RW"), UVM_MEDIUM)
+    `uvm_info(get_type_name(), $sformatf("I2C MONITOR COLLECTED ADDRESS AND RW"), UVM_DEBUG)
     collect_resp();
   endtask
 
@@ -148,7 +158,7 @@ class i2c_monitor extends uvm_monitor;
       end
 
       trans.data_q.push_back(data);
-      `uvm_info(get_type_name(), $sformatf("I2C MONITOR COLLECTED A BYTE"), UVM_MEDIUM)
+      `uvm_info(get_type_name(), $sformatf("I2C MONITOR COLLECTED A BYTE"), UVM_DEBUG)
       collect_resp();
     end
   endtask
@@ -161,40 +171,78 @@ class i2c_monitor extends uvm_monitor;
     end
     else
       trans.resp.push_back(I2C_ACK);
-    `uvm_info(get_type_name(), $sformatf("I2C MONITOR COLLECTED A RESPONSE"), UVM_MEDIUM)
+    `uvm_info(get_type_name(), $sformatf("I2C MONITOR COLLECTED A RESPONSE"), UVM_DEBUG)
   endtask
 
-  task check_clock_streching();
-  bit repeated_start_local;
-  forever begin
-    `uvm_info(get_type_name(), $sformatf("CLOCK TASK"), UVM_MEDIUM)
-    if (~repeated_start_local)
+  virtual task put(bit arb_lost);
+    trans.arb_lost = 1;
+  endtask
+
+  function void report_phase(uvm_phase phase);
+    `uvm_info(get_type_name(), $sformatf("I2C Monitor has collected %0d transfers",transfer_number), UVM_LOW)
+  endfunction
+
+//----------------------------------------CHECKERS--------------------------------------------------------------------//
+ task run_checks();
+    fork
+      check_clock_streching();
+      check_tip();
+      check_idle_scl();
+      get_start_stop_window();
+      check_sda_stable();
+    join
+  endtask
+
+  task check_tip();
+    forever begin
       @(negedge vif.sda iff vif.scl); //start condition
-    else
-      repeated_start_local = 0;
-    
-    @(negedge vif.scl);
-    
-    collect_clock_period(actual_period);
-    trans.clock_period = actual_period;
-    `uvm_info(get_type_name(), $sformatf("ACTUAL CLOCK PERIOD %0d",actual_period), UVM_MEDIUM)
-    fork: check_strech
-      forever begin
-        collect_clock_period(clock_period);
-        `uvm_info(get_type_name(), $sformatf("CLOCK PERIOD %0d",clock_period), UVM_MEDIUM)
-        if(clock_period > actual_period)
-          trans.clock_strech = 1;
-      end
-      begin @(negedge vif.sda iff vif.scl); repeated_start_local = 1; end//start condition
+      tip = 1;
       @(posedge vif.sda iff vif.scl); //stop condition
-    join_any
-    disable check_strech;
-  end
+      @(vif.cb);
+      tip = 0;
+    end
+  endtask
+
+  task get_start_stop_window();
+    bit [3:0] count;
+    count = 10;
+    start_stop_window = 1;
+    @(negedge vif.sda iff vif.scl);
+    start_stop_window = 0;
+    
+    forever begin
+      repeat(count) @(posedge vif.scl);
+      start_stop_window = 1;
+
+      fork 
+        begin @(negedge vif.scl);             @(vif.cb); count =  9; start_stop_window = 0; end //transfer not ended
+        begin @(negedge vif.sda iff vif.scl); @(vif.cb); count = 10; start_stop_window = 0; end //repeated start
+        begin @(posedge vif.sda iff vif.scl); @(vif.cb); count = 10;                        end //stop condition
+      join_any
+
+      disable fork;
+    end
+  endtask
+
+  task check_sda_stable();
+    forever begin
+      @(vif.sda iff vif.scl);
+      if (~start_stop_window)
+        `uvm_fatal(get_type_name(),"SDA unstable while SCL was high")
+    end
+  endtask
+
+  task check_idle_scl();
+    forever begin
+      if(~tip & ~vif.mon_cb.scl)  
+        `uvm_fatal(get_type_name(),"SCL must not be LOW while outside transaction")
+      else
+        @(vif.mon_cb);
+    end
   endtask
 
   task collect_clock_period(output int per);
     per = 0;
-    //`uvm_info(get_type_name(), $sformatf("MINI CLOCK TASK"), UVM_MEDIUM)
     @(negedge vif.scl);
     
     fork: count_period
@@ -207,15 +255,30 @@ class i2c_monitor extends uvm_monitor;
     disable count_period;
   endtask
 
-  virtual task put(bit arb_lost);
-    trans.arb_lost = 1;
-    //`uvm_info(get_type_name(), $sformatf("The I2C MONITOR has collected the following transaction:\n%s",trans.sprint()), UVM_MEDIUM)
+  task check_clock_streching();
+    bit repeated_start_local;
+    forever begin
+      if (~repeated_start_local)
+        @(negedge vif.sda iff vif.scl); //start condition
+      else
+        repeated_start_local = 0;
 
+      @(negedge vif.scl);
+      collect_clock_period(actual_period);
+
+      trans.clock_period = actual_period;
+      fork: check_strech
+        forever begin
+          collect_clock_period(clock_period);
+          if(clock_period > actual_period)
+            trans.clock_strech = 1;
+        end
+        begin @(negedge vif.sda iff vif.scl); repeated_start_local = 1; end//start condition
+        @(posedge vif.sda iff vif.scl); //stop condition
+      join_any
+      disable fork;
+    end
   endtask
-
-  function void report_phase(uvm_phase phase);
-    `uvm_info(get_type_name(), $sformatf("I2C Monitor has collected %0d transfers",transfer_number), UVM_LOW)
-  endfunction
 
 endclass
 

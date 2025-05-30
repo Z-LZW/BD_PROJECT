@@ -6,7 +6,7 @@ interface i2c_interface (input clk,rst_n);
   triand sda;
   triand scl;
 
-  bit enable;
+  bit tip;
 
   clocking cb @(posedge clk);
     inout sda;
@@ -20,9 +20,12 @@ interface i2c_interface (input clk,rst_n);
 
   initial forever begin
     @(negedge sda iff scl);
-    enable <= 1;
+    tip = 1;
+  end
+
+  initial forever begin
     @(posedge sda iff scl);
-    enable <= 0;
+    tip = 0;
   end
 
 //----------------------------ASSERTIONS---------------------------//
@@ -32,15 +35,10 @@ interface i2c_interface (input clk,rst_n);
       !$isunknown(signal);
   endproperty
 
-  property stable;
-    @(posedge clk iff scl) disable iff (~enable)
-      $stable(sda);
-  endproperty
-
   scl_known: assert property(not_unknown(sda)) else $fatal("SDA must not be X or Z while reset is not asserted");
   sda_known: assert property(not_unknown(scl)) else $fatal("SCL must not be X or Z while reset is not asserted");
 
-  //sda_stable: assert property(stable) else $fatal("SDA mut be stable durring a transaction while SCL is high");
+  //sda_stable: assert property(sda_stable_while_scl_high) else $fatal("SDA mut be stable durring a transaction while SCL is high");
 
 endinterface
 

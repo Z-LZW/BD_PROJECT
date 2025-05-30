@@ -36,6 +36,7 @@ class apb_driver #(AW=32,DW=32) extends uvm_driver #(apb_trans #(AW,DW));
 
     //go over initial reset
     @(posedge vif.preset_n);
+    @(vif.mst_cb);
 
     get_and_drive();
 
@@ -51,14 +52,14 @@ class apb_driver #(AW=32,DW=32) extends uvm_driver #(apb_trans #(AW,DW));
         vif.mst_cb.pwdata  <=  'bx;
       end
       APB_SLAVE: begin
-        vif.slv_cb.pready  <= 1'b1;
+        vif.slv_cb.pready  <= 1'b0;
         vif.slv_cb.pslverr <= 1'b0;
         vif.slv_cb.prdata  <=  'bx;
       end
     endcase
   endtask:drive_reset_values
 
-  task get_and_drive();
+  task get_and_drive(); 
     forever begin
       fork
         //drive reset values as soon as preset_n is asserter or unknown
@@ -67,7 +68,8 @@ class apb_driver #(AW=32,DW=32) extends uvm_driver #(apb_trans #(AW,DW));
           if (vif.psel)
             seq_item_port.item_done(); //abandon transaction when reset comes 
           drive_reset_values(); 
-          @(posedge vif.preset_n); 
+          @(posedge vif.preset_n);
+          @(vif.mst_cb); 
         end 
 
         begin:drive_normal_condition

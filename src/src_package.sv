@@ -9,10 +9,13 @@ package src_package;
   import system_package::*;
   import apb_package::*;
   import i2c_package::*;
+  import irq_package::*;
 
   `include "register_model/reg_model.sv"
   `include "register_model/reg_adapter.sv"
   `include "../v_src/virtual_sequencer.sv"
+  `include "scoreboard.sv"
+  `include "coverage.sv"
   `include "environment.sv"
 
 endpackage

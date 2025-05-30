@@ -7,19 +7,22 @@ class i2c_trans extends uvm_sequence_item;
   rand bit [7-1:0]      addr          ; //address
   rand bit [8-1:0]      data_q[$]     ; //data bytes
   rand i2c_resp_kind_t  resp[$]       ; //ack | nack
+  rand int unsigned     delay         ; //delay between i2c transactions [driver relevant only]
+  rand i2c_delay_kind_t delay_kind    ;
   rand bit              repeated_start; // 0 -> normal | 1 -> repeated_start
   rand bit              clock_strech  ; // 0 -> normal | 1 -> clock_streaching
-  rand bit [8-1:0]      clock_period  ;
+  rand int              clock_period  ;
   bit                   arb_lost      ;
 
   `uvm_object_utils_begin(i2c_trans)
+    `uvm_field_enum(i2c_delay_kind_t,delay_kind,UVM_ALL_ON)
     `uvm_field_enum(i2c_trans_kind_t,kind,UVM_ALL_ON)
     `uvm_field_int(addr,UVM_ALL_ON)
+    `uvm_field_int(clock_period,UVM_ALL_ON)
     `uvm_field_queue_int(data_q,UVM_ALL_ON)
     `uvm_field_queue_enum(i2c_resp_kind_t,resp,UVM_ALL_ON)
     `uvm_field_int(repeated_start,UVM_ALL_ON)
     `uvm_field_int(clock_strech,UVM_ALL_ON)
-    `uvm_field_int(clock_period,UVM_ALL_ON)
     `uvm_field_int(arb_lost,UVM_ALL_ON)
   `uvm_object_utils_end
 
@@ -28,6 +31,16 @@ class i2c_trans extends uvm_sequence_item;
   constraint clock_period_c{
     clock_period % 4 == 0;
     clock_period inside {[4:128]};
+  }
+
+  constraint delay_c {
+    (delay_kind == ZERO)   -> delay == 0;
+    (delay_kind == SHORT)  -> delay inside {[1 : 2]};
+    (delay_kind == MEDIUM) -> delay inside {[3 : 4]};
+    (delay_kind == LARGE)  -> delay inside {[5 : 7]};
+    (delay_kind == MAX)    -> delay >= 7  ;
+                              delay >= 0  ; 
+                              delay <= 10 ;           //max delay between trans 
   }
 
   constraint size_c{

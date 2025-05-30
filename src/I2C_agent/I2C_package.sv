@@ -12,7 +12,7 @@ package i2c_package;
   `include "I2C_monitor.sv"
   //`include "i2c_base_sequence.sv"
   `include "I2C_sequencer.sv"
-  //`include "i2c_coverage.sv"
+  `include "I2C_coverage.sv"
   `include "I2C_agent.sv"
 
 endpackage
