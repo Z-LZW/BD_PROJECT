@@ -6,11 +6,12 @@ class virtual_sequencer#(AW=32,DW=32) extends uvm_sequencer;
   `uvm_component_param_utils(virtual_sequencer#(AW,DW))
 
   apb_sequencer #(AW,DW) apb_master_seqr;
-  apb_sequencer #(AW,DW) apb_slave_seqr; 
 
   i2c_sequencer i2c_master_seqr;
   //i2c_sequencer i2c_master_seqr_arb;
-  i2c_sequencer i2c_slave_seqr; 
+  i2c_sequencer i2c_slave_seqr;
+
+  system_sequencer system_seqr;
 
   reg_blk p_reg_model;
 

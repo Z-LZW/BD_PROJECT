@@ -1,9 +1,9 @@
 #Name of the SV test class to pe run
-TESTNAME="cov_selfcheck"
+TESTNAME="basic_slave_tx_test"
 #Tool used to run simulation; 0 - Mentor, 1 - Cadence
 TOOL=0
 #SEED number used for randomization(for recipe where NUM_SEEDS is not used)
-SEED=1
+SEED=2
 #Number of tests to be run(for recipe where SEED is not used)
 NUM_SEEDS=2
 #verbosity
@@ -20,16 +20,11 @@ endif
 #Add here tests to the regression list
 .PHONY: run_regression	
 run_regression:	
-	make run_cov_multiple TOP=${TOP} TOOL=${TOOL} TESTNAME="single_conf_small_read_test" 	 NUM_SEEDS=10;
-	make run_cov_multiple TOP=${TOP} TOOL=${TOOL} TESTNAME="single_conf_small_write_test"  NUM_SEEDS=10;
-	make run_cov_multiple TOP=${TOP} TOOL=${TOOL} TESTNAME="multiple_conf_small_rw_test"   NUM_SEEDS=10;
-	make run_cov_multiple TOP=${TOP} TOOL=${TOOL} TESTNAME="max_ts_min_bs_test"            NUM_SEEDS=10;
-	make run_cov_multiple TOP=${TOP} TOOL=${TOOL} TESTNAME="max_ts_max_bs_test"            NUM_SEEDS=10;
-	make run_cov_multiple TOP=${TOP} TOOL=${TOOL} TESTNAME="min_ts_test"                   NUM_SEEDS=10;
-	make run_cov_multiple TOP=${TOP} TOOL=${TOOL} TESTNAME="large_burst_test"              NUM_SEEDS=15;
-	make run_cov_multiple TOP=${TOP} TOOL=${TOOL} TESTNAME="large_last_burst_test"         NUM_SEEDS=15;
-	make run_cov_multiple TOP=${TOP} TOOL=${TOOL} TESTNAME="rst_test"                   	 NUM_SEEDS=5;
-	make run_cov_multiple TOP=${TOP} TOOL=${TOOL} TESTNAME="random_test"                   NUM_SEEDS=20;
+	make run_cov_multiple TOP=${TOP} TOOL=${TOOL} TESTNAME="basic_master_read_test" 	 NUM_SEEDS=5;
+	make run_cov_multiple TOP=${TOP} TOOL=${TOOL} TESTNAME="basic_master_write_test" 	 NUM_SEEDS=5;
+	make run_cov_multiple TOP=${TOP} TOOL=${TOOL} TESTNAME="basic_slave_rx_test" 	     NUM_SEEDS=5;
+	make run_cov_multiple TOP=${TOP} TOOL=${TOOL} TESTNAME="basic_slave_tx_test" 	     NUM_SEEDS=5;
+	
 	make merge_cov TOOL=${TOOL};
 
 .PHONY: run_small_regression	

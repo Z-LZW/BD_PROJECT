@@ -82,8 +82,14 @@ class i2c_driver extends uvm_driver #(i2c_trans);
       join_any
 
       disable fork;
-      `uvm_info(get_type_name(),$sformatf("ITEM_DONE"),UVM_HIGH)
-      seq_item_port.item_done();
+      //`uvm_info(get_type_name(),$sformatf("ITEM_DONE"),UVM_HIGH)
+      if (~vif.rst_n) begin
+        if(tip) begin
+          seq_item_port.item_done();
+        end
+      end
+      else
+        seq_item_port.item_done();
       drive_reset_values();
       @(vif.cb);
     end
@@ -118,7 +124,7 @@ class i2c_driver extends uvm_driver #(i2c_trans);
         fork: master_driving
           master_drive_clock(trans); //drive scl
           master_drive_trans(trans); //drive transaction
-          check_arb();               //check if arbitration was lost
+          //heck_arb();               //check if arbitration was lost
           @(nack_e);                 //wait for a NACK response
         join_any
 
@@ -197,7 +203,7 @@ class i2c_driver extends uvm_driver #(i2c_trans);
               slave_read_byte(trans);   //responde to bytes untill stop condition is detected
               @(posedge vif.sda iff vif.scl); //stop condition
                begin @(negedge vif.sda iff vif.scl); repeated_start = 1; end //repeated start condition
-              @(nack_e);
+              //@(nack_e);
             join_any
             disable slave_read;
           end
@@ -207,6 +213,15 @@ class i2c_driver extends uvm_driver #(i2c_trans);
               @(nack_e);
             join_any
             disable slave_write;
+            vif.cb.sda <= 1;
+
+            fork 
+              begin @(negedge vif.sda iff vif.scl); repeated_start = 1; end //repeated start condition
+              @(posedge vif.sda iff vif.scl); //stop condition
+            join_any
+
+            disable fork;
+           
           end
         end
         else begin
@@ -422,10 +437,12 @@ class i2c_driver extends uvm_driver #(i2c_trans);
   task check_arb();
   arb_lost = 0;
   while (~arb_lost) begin
-    wait (~vif.cb.sda & driven_high);
-    @(vif.cb);
-    if (~vif.cb.sda & driven_high)
-      arb_lost = 1;
+    @(negedge vif.scl);
+    if(~vif.cb.sda & driven_high) begin
+      @(vif.cb);
+      if (~vif.cb.sda & driven_high)
+        arb_lost = 1;
+    end
   end
   `uvm_info(get_type_name(),$sformatf("DIFFERENCE IN DRIVING"),UVM_DEBUG)
   endtask

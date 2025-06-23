@@ -15,8 +15,7 @@ class reg_apb_adapter#(AW=32,DW=32) extends uvm_reg_adapter;
     assert (trans.randomize());
     trans.kind = (rw.kind == UVM_READ) ? APB_READ : APB_WRITE;
     trans.addr = rw.addr;
-    if(trans.addr != 0)
-      trans.data = rw.data;
+    trans.data = rw.data;
     return trans;
   endfunction
 

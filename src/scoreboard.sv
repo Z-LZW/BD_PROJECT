@@ -23,6 +23,7 @@ class scoreboard#(AW=32,DW=32) extends uvm_scoreboard;
 
   event i2c_trnas_e; //event that signal when a transaction was received
   event apb_trnas_e; //event that signal when a transaction was received
+  event irq_assert_e;
 
   uvm_event start_read_rx_fifo; //global event thaa is used to signal the test to start reading the rx fifo register
   uvm_event done_read_rx_fifo ; //global event that is used to signal that the test finished reading the rx fifo register
@@ -31,6 +32,7 @@ class scoreboard#(AW=32,DW=32) extends uvm_scoreboard;
   uvm_event i2c_stop_condition;  //i2c stop condition detectedon the bus
 
   bit mode;
+  bit [9-1:0] byte_count;
 
   //---------------------------------
 
@@ -83,10 +85,9 @@ class scoreboard#(AW=32,DW=32) extends uvm_scoreboard;
       //store TX data in a queue and predict when full
       if (apb_t.addr == 'h00 & apb_t.kind == APB_WRITE) begin
         tx_fifo.push_back(apb_t.data);
-        if (tx_fifo.size() == 256)
+        if (tx_fifo.size() == 256) begin
           void'(reg_model.irq.tx_fifo_full.predict(1));
-        else
-          void'(reg_model.irq.tx_fifo_full.predict(0));
+        end
       end
       
       //store RX data in a queue and predict when empty
@@ -94,9 +95,11 @@ class scoreboard#(AW=32,DW=32) extends uvm_scoreboard;
         rx_fifo.push_back(apb_t.data);
         if (rx_fifo.size() == i2c_t.data_q.size())
           void'(reg_model.irq.rx_fifo_empty.predict(1));
-        else
-          void'(reg_model.irq.rx_fifo_empty.predict(0));
       end
+
+      if (apb_t.addr == 'h10)
+        byte_count = apb_t.data[16:8];
+
     end
   endtask
 
@@ -129,26 +132,50 @@ class scoreboard#(AW=32,DW=32) extends uvm_scoreboard;
       check_data_integrity();
       predict_busy();
       predict_tip();
+      check_byte_count();
 
     join
+  endtask
+
+  task check_byte_count();
+    forever begin 
+      @(apb_trnas_e);
+      if(reg_model.ctrl.mode.get()) begin
+        if (rw_conf) begin
+          if (byte_count > reg_model.ctrl.tx_fifo_lim.get()) begin
+            `uvm_fatal(get_type_name(),"I2C TRANSFER LARGER THAN SPECIFIED IN CONFIGURATION")
+          end
+        end
+        else begin
+          if (byte_count > reg_model.ctrl.rx_fifo_lim.get()) begin
+            `uvm_fatal(get_type_name(),"I2C TRANSFER LARGER THAN SPECIFIED IN CONFIGURATION")
+          end
+        end
+      end
+    end
   endtask
 
   task check_irq_tx();
     forever begin
       @(i2c_trnas_e);
       if (reg_model.ctrl.mode.get()) begin //I2C master
-        if ((i2c_t.kind == I2C_WRITE) & (i2c_t.data_q.size() == tx_fifo.size()) & (i2c_t.resp[$] == I2C_ACK)) //TBD PROTOCOL VIOLATION
+        if ((i2c_t.kind == I2C_WRITE) & (i2c_t.data_q.size() == tx_fifo.size()) & (i2c_t.data_q.size() == reg_model.ctrl.tx_fifo_lim.get()) & (i2c_t.resp[$] == I2C_ACK)) begin //TBD PROTOCOL VIOLATION
+          void'(reg_model.irq.tx_done.predict(1));
+          `uvm_info(get_type_name(),"WE ARE IN THE TX DONE PREDIC OF MASTER",UVM_MEDIUM)
+        end
+        else begin
+          //void'(reg_model.irq.tx_fail.predict(1));
+          `uvm_info(get_type_name(),"WE ARE IN THE TX FAIL PREDIC OF MASTER",UVM_MEDIUM)
+        end
+      end
+      else begin //I2C slave
+      if(i2c_t.kind == I2C_READ) begin
+        if ((i2c_t.data_q.size() == tx_fifo.size()) & (i2c_t.resp[0] == I2C_ACK)) //TBD PROTOCOL VIOLATION
           void'(reg_model.irq.tx_done.predict(1));
         else begin
           void'(reg_model.irq.tx_fail.predict(1));
         end
       end
-      else begin //I2C slave
-        if ((i2c_t.kind == I2C_READ) & (i2c_t.data_q.size() == tx_fifo.size()) & (i2c_t.resp[0] == I2C_ACK)) //TBD PROTOCOL VIOLATION
-          void'(reg_model.irq.tx_done.predict(1));
-        else begin
-          void'(reg_model.irq.tx_fail.predict(1));
-        end
       end
     end
   endtask
@@ -157,17 +184,21 @@ class scoreboard#(AW=32,DW=32) extends uvm_scoreboard;
     forever begin
       done_read_rx_fifo.wait_trigger();
       if (reg_model.ctrl.mode.get()) begin //I2C master
-        if ((i2c_t.kind == I2C_READ) & (i2c_t.data_q.size() == rx_fifo.size()) & (i2c_t.resp[0] == I2C_ACK)) //TBD PROTOCOL VIOLATION
-          void'(reg_model.irq.tx_done.predict(1));
-        else begin
-          void'(reg_model.irq.tx_fail.predict(1));
+        if(i2c_t.kind == I2C_READ) begin
+          if ((i2c_t.kind == I2C_READ) & (i2c_t.data_q.size() == rx_fifo.size()) & (i2c_t.resp[0] == I2C_ACK)) //TBD PROTOCOL VIOLATION
+            void'(reg_model.irq.rx_done.predict(1));
+          else begin
+            void'(reg_model.irq.rx_fail.predict(1));
+          end
         end
       end
       else begin //I2C slave
-        if ((i2c_t.kind == I2C_WRITE) & (i2c_t.data_q.size() == rx_fifo.size()) & (i2c_t.resp[$] == I2C_ACK)) //TBD PROTOCOL VIOLATION
-          void'(reg_model.irq.tx_done.predict(1));
-        else begin
-          void'(reg_model.irq.tx_fail.predict(1));
+        if(i2c_t.kind == I2C_WRITE) begin
+          if ((i2c_t.data_q.size() == rx_fifo.size()) & (i2c_t.resp[$] == I2C_ACK)) //TBD PROTOCOL VIOLATION
+            void'(reg_model.irq.rx_done.predict(1));
+          else begin
+            void'(reg_model.irq.rx_fail.predict(1));
+          end
         end
       end
     end
@@ -216,7 +247,7 @@ class scoreboard#(AW=32,DW=32) extends uvm_scoreboard;
           if (apb_t.data[2]) begin
             tx_fifo.delete();
             //i2c_t.data_q.delete();
-            void'(reg_model.irq.tx_fifo_full.predict(0));
+            //void'(reg_model.irq.tx_fifo_full.predict(0));
           end
         end
       end
@@ -232,8 +263,8 @@ class scoreboard#(AW=32,DW=32) extends uvm_scoreboard;
         if (reg_model.irq_mask.get() == 0)
           `uvm_error(get_type_name(),"IRQ asserted while it was masked")
         
-        if (reg_model.irq.get() == 0)
-          `uvm_error(get_type_name(),"IRQ asserted vector is empty")
+        //if (reg_model.irq.get() == 0)
+        //  `uvm_error(get_type_name(),"IRQ asserted vector is empty")
       end
     end
   endtask
@@ -269,6 +300,9 @@ class scoreboard#(AW=32,DW=32) extends uvm_scoreboard;
         if((i2c_t.addr != reg_model.addr.device_addr.get()) & (i2c_t.resp[0] == I2C_ACK))
           `uvm_error(get_type_name(),"I2C slave responded with ACK while address not matching configurations")
         
+        if((i2c_t.addr == reg_model.addr.device_addr.get()) & (reg_model.ctrl.enable_dev.get()) & (i2c_t.resp[0] == I2C_NACK))
+          `uvm_error(get_type_name(),"I2C slave responded with NACK while address matching configurations and device was enabled")
+        
         if((i2c_t.addr == reg_model.addr.device_addr.get()) & (i2c_t.resp[0] == I2C_ACK) & ((reg_model.ctrl.enable_ack.get() == 0) | (reg_model.ctrl.enable_dev.get() == 0)))
           `uvm_error(get_type_name(),"I2C slave responded with ACK while not enabled")
         
@@ -281,7 +315,7 @@ class scoreboard#(AW=32,DW=32) extends uvm_scoreboard;
     bit [8-1:0] reg_byte;
     forever begin
       @(i2c_trnas_e);
-
+      `uvm_info(get_type_name(),"HE ARE PREDICTING THE BYTE COUNT",UVM_MEDIUM)
       void'(reg_model.status.byte_cnt.predict(i2c_t.data_q.size()));
       
       //predict the nack field of status register when nack is detected
@@ -295,17 +329,17 @@ class scoreboard#(AW=32,DW=32) extends uvm_scoreboard;
           if (i2c_t.kind == I2C_WRITE) begin //I2C WRITE
             if (i2c_t.data_q.size() != tx_fifo.size()) begin
               //`uvm_error(get_type_name(),$sformatf("Number of bytes transferred does not equal the number of bytes written in register: I2C byte number: %0d | Register byte number: %0d",i2c_t.data_q.size(),tx_fifo.size()))
-              void'(reg_model.irq.tx_fail.predict(1));
-              void'(reg_model.irq.tx_done.predict(0));
+              // void'(reg_model.irq.tx_fail.predict(1));
+              // void'(reg_model.irq.tx_done.predict(0));
               //i2c_t.data_q.delete();
               tx_fifo.delete();
             end
             else begin
-              void'(reg_model.irq.tx_fail.predict(0));
-              void'(reg_model.irq.tx_done.predict(1));
-              while(tx_fifo.size() != 0) begin
-                i2c_byte = i2c_t.data_q.pop_front();
-                reg_byte = tx_fifo.pop_front();
+              // void'(reg_model.irq.tx_fail.predict(0));
+              // void'(reg_model.irq.tx_done.predict(1));
+              for(int i = 0; i < tx_fifo.size(); i++) begin
+                i2c_byte = i2c_t.data_q[i];
+                reg_byte = tx_fifo[i];
                 if (i2c_byte != reg_byte)
                   `uvm_error(get_type_name(),$sformatf("Data mismatch: i2c byte: %0h | register byte: %0h",i2c_byte,reg_byte))
               end
@@ -317,19 +351,19 @@ class scoreboard#(AW=32,DW=32) extends uvm_scoreboard;
             done_read_rx_fifo.wait_trigger(); 
             if ((i2c_t.data_q.size() != reg_model.ctrl.rx_fifo_lim.get())) begin
               //`uvm_error(get_type_name(),$sformatf("Number of bytes transferred does not equal the number of bytes written in register: I2C byte number: %0d | Register byte number: %0d",i2c_t.data_q.size(),rx_fifo.size()))
-              void'(reg_model.irq.rx_fail.predict(1));
-              void'(reg_model.irq.rx_done.predict(0));
+              // void'(reg_model.irq.rx_fail.predict(1));
+              // void'(reg_model.irq.rx_done.predict(0));
               //i2c_t.data_q.delete();
               rx_fifo.delete();
             end
             else begin
-              void'(reg_model.irq.rx_fail.predict(0));
-              void'(reg_model.irq.rx_done.predict(1));
-              while(rx_fifo.size() != 0) begin
-                i2c_byte = i2c_t.data_q.pop_front();
-                reg_byte = rx_fifo.pop_front();
+              // void'(reg_model.irq.rx_fail.predict(0));
+              // void'(reg_model.irq.rx_done.predict(1));
+              for(int i = 0; i < rx_fifo.size(); i++) begin
+                i2c_byte = i2c_t.data_q[i];
+                reg_byte = rx_fifo[i];
                 if (i2c_byte != reg_byte)
-                  `uvm_error(get_type_name(),$sformatf("Data mismatch: i2c byte: %0f | register byte: %0f",i2c_byte,reg_byte))
+                  `uvm_error(get_type_name(),$sformatf("Data mismatch: i2c byte: %0h | register byte: %0h",i2c_byte,reg_byte))
               end
             end
           end

@@ -1,0 +1,10 @@
+[1  | register_sanity_test] PREADY not asserted when reading the registers
+[2  | register_sanity_test] Reset value of status register is not 0, TIP field is reversed
+[3  | register_sanity_test] Some registers were stuck in their reset value
+[4  | register_sanity_test] Address register field not accurate
+[5  | basic_slave_rx_test]  Byte count not functioning corectly in slave mode
+[6  | basic_master_write ]  Command register did not initiate transfer
+[7  | basic_slave_rx_test]  Byte count not functioning corectly in master mode
+[8  | basic_maste_write]    Tx done not signalled in IRQ vector
+[9  | basic_master_read]    TIP not deaserted after stop condition
+[10 | basic_slave_tx_test]  Byte count not incrementing corectly

@@ -28,7 +28,7 @@ class apb_trans #(AW=32,DW=32) extends uvm_sequence_item;
 //------------------------CONSTRAINTS------------------------------//
 
   constraint delay_c {
-    (delay_kind == ZERO)    -> delay == 0;
+    (delay_kind == ZERO)    -> delay == 1;
     (delay_kind == SHORT)   -> delay inside {[1 : 5]};
     (delay_kind == MEDIUM)  -> delay inside {[6 :10]};
     (delay_kind == LARGE)   -> delay inside {[11:19]};

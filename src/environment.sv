@@ -7,7 +7,6 @@ class environment #(AW=32,DW=32) extends uvm_env;
 
   //apb agents
   apb_agent#(AW,DW) apb_master_agent;
-  apb_agent#(AW,DW) apb_slave_agent;
 
   //i2c agents
   i2c_agent i2c_master_agent [];
@@ -95,7 +94,6 @@ class environment #(AW=32,DW=32) extends uvm_env;
     super.build_phase(phase);
     
     apb_master_agent = apb_agent#(AW,DW)::type_id::create("apb_master_agent",this);
-    apb_slave_agent  = apb_agent#(AW,DW)::type_id::create("apb_slave_agent",this);
 
     //i2c_master_agent = i2c_agent::type_id::create("i2c_master_agent",this);
     //i2c_master_agent_arb = i2c_agent::type_id::create("i2c_master_agent_arb",this);
@@ -124,8 +122,9 @@ class environment #(AW=32,DW=32) extends uvm_env;
   function void connect_phase(uvm_phase phase);
     super.connect_phase(phase);
 
+    v_sequencer.system_seqr = sys_agent.sequencer;
+
     v_sequencer.apb_master_seqr = apb_master_agent.sequencer;
-    v_sequencer.apb_slave_seqr  = apb_slave_agent.sequencer;
     
     v_sequencer.i2c_master_seqr = i2c_master_agent[0].sequencer;
     v_sequencer.i2c_slave_seqr  = i2c_slave_agent[0].sequencer; 

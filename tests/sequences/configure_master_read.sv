@@ -32,7 +32,7 @@ class configure_master_read extends virtual_sequence_base;
     super.new(name);
   endfunction:new 
 
-  function randomize();
+  function randomize_conf();
     assert (std::randomize(target_addr)) else $fatal("randomization failed in master read configuration sequence");
 
     assert (std::randomize(rx_lim)) else $fatal("randomization failed in master read configuration sequence");
@@ -47,9 +47,20 @@ class configure_master_read extends virtual_sequence_base;
     assert (std::randomize(divider)) else $fatal("randomization failed in master read configuration sequence");
   endfunction
 
+  function print_configurations();
+    `uvm_info(get_type_name(),$sformatf("DUT will be configured with:\n
+    MODE: MASTER\n
+    OPERATION: READ\n
+    DIVIDER: %0d\n
+    RX_LIM: %0d\n
+    TX_LIM: 0\n
+    ADDRESS: %h\n",divider,rx_lim,target_addr),UVM_LOW)
+  endfunction
+
   virtual task body();
+  print_configurations();
     p_sequencer.p_reg_model.divider.write(status,divider);              //set divider
-    p_sequencer.p_reg_model.ctrl.write(status,{rx_lim,5'b0,'h7});       //set transfer limit | enable device | enable ack | mode
+    p_sequencer.p_reg_model.ctrl.write(status,{rx_lim,8'b0,5'b0,3'h7});       //set transfer limit | enable device | enable ack | mode
     p_sequencer.p_reg_model.cmd.write(status,'h1c);                     //clear the interrupt and fifos
     p_sequencer.p_reg_model.addr.write(status,{target_addr,8'b0});      //write the target address
 

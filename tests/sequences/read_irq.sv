@@ -13,7 +13,8 @@ class read_irq extends virtual_sequence_base;
   endfunction:new
 
   virtual task body();
-    p_sequencer.p_reg_model.irq.mirror(status);
+    $display("value of mirror irq value: %0b",p_sequencer.p_reg_model.irq.get_mirrored_value());
+    p_sequencer.p_reg_model.irq.mirror(status,UVM_CHECK);
   endtask
 endclass
 

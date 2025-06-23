@@ -29,8 +29,7 @@ class i2c_trans extends uvm_sequence_item;
 //------------------------CONSTRAINTS------------------------------//
 
   constraint clock_period_c{
-    clock_period % 4 == 0;
-    clock_period inside {[4:128]};
+    clock_period inside {[6:128]};
   }
 
   constraint delay_c {

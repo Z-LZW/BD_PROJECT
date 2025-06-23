@@ -14,7 +14,7 @@ class tx_fifo_data_reg extends uvm_reg;
   virtual function void build();
     value = uvm_reg_field::type_id::create("value");
 
-    value.configure(this,8,0,"WO",0,32'h0,1,1,0);
+    value.configure(this,8,0,"WO",0,32'h0,1,1,1);
   endfunction
 endclass
 
@@ -31,7 +31,7 @@ class rx_fifo_data_reg extends uvm_reg;
   virtual function void build();
     value = uvm_reg_field::type_id::create("value");
 
-    value.configure(this,8,0,"RO",0,32'h0,1,1,0);
+    value.configure(this,8,0,"RO",0,32'h0,1,1,1);
   endfunction
 endclass
 
@@ -50,8 +50,8 @@ class addr_reg extends uvm_reg;
     target_addr = uvm_reg_field::type_id::create("target_addr");
     device_addr = uvm_reg_field::type_id::create("device_addr");
 
-    target_addr.configure(this,7,8,"RW",0,32'h0,1,1,0);
-    device_addr.configure(this,7,0,"RW",0,32'h0,1,1,0);
+    target_addr.configure(this,7,8,"RW",0,32'h0,1,1,1);
+    device_addr.configure(this,7,0,"RW",0,32'h0,1,1,1);
   endfunction
 endclass
 
@@ -76,11 +76,11 @@ class ctrl_reg extends uvm_reg;
     enable_dev  = uvm_reg_field::type_id::create("enable_dev" );
     mode        = uvm_reg_field::type_id::create("mode"       );
 
-    rx_fifo_lim.configure(this,8,16,"RW",0,32'h0,1,1,0);
-    tx_fifo_lim.configure(this,8, 8,"RW",0,32'h0,1,1,0);
-    enable_ack.configure (this,1, 2,"RW",0,32'h0,1,1,0); 
-    enable_dev.configure (this,1, 1,"RW",0,32'h0,1,1,0); 
-    mode.configure       (this,1, 0,"RW",0,32'h0,1,1,0);       
+    rx_fifo_lim.configure(this,8,16,"RW",0,32'h0,1,1,1);
+    tx_fifo_lim.configure(this,8, 8,"RW",0,32'h0,1,1,1);
+    enable_ack.configure (this,1, 2,"RW",0,32'h0,1,1,1); 
+    enable_dev.configure (this,1, 1,"RW",0,32'h0,1,1,1); 
+    mode.configure       (this,1, 0,"RW",0,32'h0,1,1,1);       
   endfunction
 endclass
 
@@ -105,11 +105,11 @@ class cmd_reg extends uvm_reg;
     read_f    = uvm_reg_field::type_id::create("read_f"   );
     write_f   = uvm_reg_field::type_id::create("write_f"  );
 
-    clear_irq.configure(this,1,4,"WO",0,32'h0,1,1,0);
-    clear_rx.configure (this,1,3,"WO",0,32'h0,1,1,0);
-    clear_tx.configure (this,1,2,"WO",0,32'h0,1,1,0); 
-    read_f.configure   (this,1,1,"WO",0,32'h0,1,1,0); 
-    write_f.configure  (this,1,0,"WO",0,32'h0,1,1,0);       
+    clear_irq.configure(this,1,4,"WO",0,32'h0,1,1,1);
+    clear_rx.configure (this,1,3,"WO",0,32'h0,1,1,1);
+    clear_tx.configure (this,1,2,"WO",0,32'h0,1,1,1); 
+    read_f.configure   (this,1,1,"WO",0,32'h0,1,1,1); 
+    write_f.configure  (this,1,0,"WO",0,32'h0,1,1,1);       
 
   endfunction
 endclass
@@ -135,11 +135,11 @@ class status_reg extends uvm_reg;
     bsy      = uvm_reg_field::type_id::create("bsy"     );
     tip      = uvm_reg_field::type_id::create("tip"     );
 
-    byte_cnt.configure(this,9,8,"RO",0,32'h0,1,1,0);
-    al.configure      (this,1,3,"RO",0,32'h0,1,1,0);
-    nack.configure    (this,1,2,"RO",0,32'h0,1,1,0); 
-    bsy.configure     (this,1,1,"RO",0,32'h0,1,1,0); 
-    tip.configure     (this,1,0,"RO",0,32'h0,1,1,0);       
+    byte_cnt.configure(this,9,8,"RO",0,32'h0,1,1,1);
+    al.configure      (this,1,3,"RO",0,32'h0,1,1,1);
+    nack.configure    (this,1,2,"RO",0,32'h0,1,1,1); 
+    bsy.configure     (this,1,1,"RO",0,32'h0,1,1,1); 
+    tip.configure     (this,1,0,"RO",0,32'h0,1,1,1);       
   endfunction
 endclass
 
@@ -166,12 +166,12 @@ class irq_reg extends uvm_reg;
     rx_done       = uvm_reg_field::type_id::create("rx_done");
     tx_done       = uvm_reg_field::type_id::create("tx_done");
 
-    rx_fifo_empty.configure(this,1,5,"RO",0,32'h0,1,1,0);
-    tx_fifo_full .configure(this,1,4,"RO",0,32'h0,1,1,0);
-    rx_fail.configure      (this,1,3,"RO",0,32'h0,1,1,0); 
-    tx_fail.configure      (this,1,2,"RO",0,32'h0,1,1,0); 
-    rx_done.configure      (this,1,1,"RO",0,32'h0,1,1,0);       
-    tx_done.configure      (this,1,0,"RO",0,32'h0,1,1,0);       
+    rx_fifo_empty.configure(this,1,5,"RO",0,32'h0,1,1,1);
+    tx_fifo_full .configure(this,1,4,"RO",0,32'h0,1,1,1);
+    rx_fail.configure      (this,1,3,"RO",0,32'h0,1,1,1); 
+    tx_fail.configure      (this,1,2,"RO",0,32'h0,1,1,1); 
+    rx_done.configure      (this,1,1,"RO",0,32'h0,1,1,1);       
+    tx_done.configure      (this,1,0,"RO",0,32'h0,1,1,1);       
   endfunction
 endclass
 
@@ -198,12 +198,12 @@ class irq_mask_reg extends uvm_reg;
     rx_done_mask       = uvm_reg_field::type_id::create("rx_done"      );
     tx_done_mask       = uvm_reg_field::type_id::create("tx_done"      );
 
-    rx_fifo_empty_mask.configure(this,1,5,"RW",0,32'h0,1,1,0);
-    tx_fifo_full_mask.configure (this,1,4,"RW",0,32'h0,1,1,0);
-    rx_fail_mask.configure      (this,1,3,"RW",0,32'h0,1,1,0); 
-    tx_fail_mask.configure      (this,1,2,"RW",0,32'h0,1,1,0); 
-    rx_done_mask.configure      (this,1,1,"RW",0,32'h0,1,1,0);       
-    tx_done_mask.configure      (this,1,0,"RW",0,32'h0,1,1,0);       
+    rx_fifo_empty_mask.configure(this,1,5,"RW",0,32'h0,1,1,1);
+    tx_fifo_full_mask.configure (this,1,4,"RW",0,32'h0,1,1,1);
+    rx_fail_mask.configure      (this,1,3,"RW",0,32'h0,1,1,1); 
+    tx_fail_mask.configure      (this,1,2,"RW",0,32'h0,1,1,1); 
+    rx_done_mask.configure      (this,1,1,"RW",0,32'h0,1,1,1);       
+    tx_done_mask.configure      (this,1,0,"RW",0,32'h0,1,1,1);       
   endfunction
 endclass
 
@@ -220,7 +220,7 @@ class divider_reg extends uvm_reg;
   virtual function void build();
     clock_div = uvm_reg_field::type_id::create("clock_div");
 
-    clock_div.configure(this,16,0,"RW",0, 32'h0000ffff,1,1,0);
+    clock_div.configure(this,16,0,"RW",0, 32'h0000ffff,1,1,1);
   endfunction                                               
 endclass
 

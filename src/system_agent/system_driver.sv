@@ -9,6 +9,7 @@ class system_driver extends uvm_driver#(system_trans);
 
   bit         do_reset; //when active[1] a system reset will be initiated
   bit [6-1:0] width   ; //width of reset [in time units]
+  rand bit [4-1:0] func_clock_period;
 
   //factory
   function new(string name,uvm_component parent = null);
@@ -27,8 +28,9 @@ class system_driver extends uvm_driver#(system_trans);
     super.run_phase(phase);
 
     fork
-      drive_clock();
+      drive_apb_clock();
       drive_reset();
+      drive_funk_clock();
       wait_seq();
     join
 
@@ -37,15 +39,17 @@ class system_driver extends uvm_driver#(system_trans);
   task wait_seq();
     forever begin
       seq_item_port.get_next_item(req);
+      `uvm_info(get_type_name(),$sformatf("SYSTEM WILL DRIVE A RESET WITH THE FOLLOWING PARAMETERS:\n%s",req.sprint()),UVM_HIGH)
       width = req.reset_width;
       #req.delay_before_reset;
       do_reset = 1;
       @(posedge vif.rst_n);
+      @(posedge vif.clk);
       seq_item_port.item_done();
     end
   endtask
 
-  task drive_clock();
+  task drive_apb_clock();
     `uvm_info(get_type_name(), $sformatf("System will start driving the clock"), UVM_HIGH)
     #40;
     forever begin
@@ -54,7 +58,22 @@ class system_driver extends uvm_driver#(system_trans);
         #width do_reset = 0;
       end
       else begin
-        #5 vif.clk <= ~vif.clk;
+        #10 vif.clk <= ~vif.clk;
+      end
+    end
+  endtask
+
+  task drive_funk_clock();
+    assert(std::randomize(func_clock_period) with {func_clock_period >= 1; func_clock_period <= 10;});
+    `uvm_info(get_type_name(), $sformatf("System will start driving the function clock with period %d",func_clock_period), UVM_HIGH)
+    #40;
+    forever begin
+      if(do_reset) begin
+        vif.f_clk <= 0;
+        #width do_reset = 0;
+      end
+      else begin
+        #func_clock_period vif.f_clk <= ~vif.f_clk;
       end
     end
   endtask

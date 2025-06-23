@@ -48,8 +48,8 @@ class apb_driver #(AW=32,DW=32) extends uvm_driver #(apb_trans #(AW,DW));
         vif.mst_cb.psel    <= 1'b0;
         vif.mst_cb.penable <= 1'b0;
         vif.mst_cb.pwrite  <= 1'b0;
-        vif.mst_cb.paddr   <=  'bx;
-        vif.mst_cb.pwdata  <=  'bx;
+        //vif.mst_cb.paddr   <=  'bx;
+        //vif.mst_cb.pwdata  <=  'bx;
       end
       APB_SLAVE: begin
         vif.slv_cb.pready  <= 1'b0;
@@ -61,23 +61,26 @@ class apb_driver #(AW=32,DW=32) extends uvm_driver #(apb_trans #(AW,DW));
 
   task get_and_drive(); 
     forever begin
+      seq_item_port.get_next_item(req); //get item from sequencer
       fork
         //drive reset values as soon as preset_n is asserter or unknown
-        if(vif.preset_n !== 1) begin 
+        begin
+          @(negedge vif.preset_n);
           disable drive_normal_condition;
-          if (vif.psel)
-            seq_item_port.item_done(); //abandon transaction when reset comes 
           drive_reset_values(); 
           @(posedge vif.preset_n);
-          @(vif.mst_cb); 
+          @(vif.mst_cb);
+          @(posedge vif.pclk); 
         end 
 
         begin:drive_normal_condition
-          seq_item_port.get_next_item(req); //get item from sequencer
+          
           drive_apb_trans(req);
-          seq_item_port.item_done(); //signal the sequencer it's ok to send the next item
+          
         end:drive_normal_condition
-      join
+      join_any
+      disable fork;
+      seq_item_port.item_done(); //signal the sequencer it's ok to send the next item
     end
   endtask
 
@@ -97,13 +100,13 @@ class apb_driver #(AW=32,DW=32) extends uvm_driver #(apb_trans #(AW,DW));
 
         //second part of transaction [ACCESS]
         @(vif.mst_cb);
+        //@(posedge vif.pclk);
         vif.mst_cb.penable <= 1'b1;
         @(vif.mst_cb);
 
         wait(vif.mst_cb.pready);
-        vif.mst_cb.psel      <= 1'b0;
-	      vif.mst_cb.penable   <= 1'b0;
         trans.data            = vif.mst_cb.prdata;
+        drive_reset_values();
       end
 
       APB_SLAVE: begin

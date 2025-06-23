@@ -1,3 +1,6 @@
+#RTL
+../rtl/rtl_package.sv
+
 #system
 ../src/system_agent/system_interface.sv
 ../src/system_agent/system_package.sv
